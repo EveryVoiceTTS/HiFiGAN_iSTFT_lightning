@@ -13,9 +13,9 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from smts.preprocessor import Preprocessor
 from smts.utils import expand_config_string_syntax
 
-from .config import CONFIGS, HiFiGANConfig
-from .dataset import HiFiGANDataModule
-from .model import HiFiGAN
+from hfgl.config import CONFIGS, HiFiGANConfig
+from hfgl.dataset import HiFiGANDataModule
+from hfgl.model import HiFiGAN
 
 app = typer.Typer(pretty_exceptions_show_locals=False)
 
