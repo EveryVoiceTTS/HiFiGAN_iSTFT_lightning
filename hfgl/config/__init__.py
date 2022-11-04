@@ -2,7 +2,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Callable, Dict, List, Union
 
-import yaml
 from smts.config.preprocessing_config import PreprocessingConfig
 from smts.config.shared_types import (
     AdamOptimizer,
@@ -13,6 +12,7 @@ from smts.config.shared_types import (
     RMSOptimizer,
 )
 from smts.config.utils import convert_callables
+from smts.utils import load_config_from_json_or_yaml_path
 
 
 class HiFiGANResblock(Enum):
@@ -68,8 +68,7 @@ class HiFiGANConfig(PartialConfigModel):
     @staticmethod
     def load_config_from_path(path: Path) -> dict:
         """Load a config from a path"""
-        with open(path) as f:
-            config = yaml.safe_load(f)
+        config = load_config_from_json_or_yaml_path(path)
         return HiFiGANConfig(**config)
 
 
