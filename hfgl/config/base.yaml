@@ -37,4 +37,4 @@ training:
     version: "base"
   val_data_workers: 0
   train_data_workers: 0
-preprocessing: "./config/base/preprocessing.yaml"
+preprocessing: "./config/default/preprocessing.yaml"

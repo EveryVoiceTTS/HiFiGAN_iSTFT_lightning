@@ -1,4 +1,4 @@
-# HiFiGAN & iSTFT-Net Vocoder written in Pytorch Lightning
+# HiFiGAN & iSTFT-Net Vocoder written in PyTorch Lightning
 
 <!-- [![codecov](https://codecov.io/gh/roedoejet/g2p/branch/master/graph/badge.svg)](https://codecov.io/gh/roedoejet/g2p) -->
 <!-- [![Build Status](https://github.com/roedoejet/g2p/actions/workflows/tests.yml/badge.svg)](https://github.com/roedoejet/g2p/actions) -->
@@ -6,7 +6,9 @@
 [![license](https://img.shields.io/badge/Licence-MIT-green)](LICENSE)
 [![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square)](https://github.com/roedoejet/HiFiGAN_iSTFT_lightning)
 
-> A Pytorch Lightning implementation of the HiFiGAN and iSTFT-Net vocoders
+🚧 Under Construction! This repo is not expected to work fully. Please check back later for a stable release. 🚧
+
+> A PyTorch Lightning implementation of the HiFiGAN and iSTFT-Net vocoders
 
 This library is for training [HiFiGAN](https://arxiv.org/abs/2010.05646) and [iSTFT-Net](https://arxiv.org/abs/2203.02395) vocoders for speech synthesis. This implementation is one part of the [Speech Generation for Indigenous Language Education (SGILE)](#background) Project.
 
@@ -111,4 +113,4 @@ pip install -e .
 
 ## Acknowledgements
 
-This project is only possible because of the work of the authors of HiFiGAN (Jungil Kong, Jaehyeon Kim, Jaekyoung Bae) and iSTFT-Net (Takuhiro Kaneko, Kou Tanaka, Hirokazu Kameoka, Shogo Seki). Please cite their work. Also many thanks to [Rishikesh (ऋषिकेश)](https://github.com/rishikksh20)  for the [Pytorch implementation of iSTFT-Net](https://github.com/rishikksh20/iSTFTNet-pytorch).
+This project is only possible because of the work of the authors of HiFiGAN (Jungil Kong, Jaehyeon Kim, Jaekyoung Bae) and iSTFT-Net (Takuhiro Kaneko, Kou Tanaka, Hirokazu Kameoka, Shogo Seki). Please cite their work. Also many thanks to [Rishikesh (ऋषिकेश)](https://github.com/rishikksh20) for the [PyTorch implementation of iSTFT-Net](https://github.com/rishikksh20/iSTFTNet-pytorch) and to Florian Lux for the open source implementation of HiFiGAN in [IMS-Toucan](https://github.com/DigitalPhonetics/IMS-Toucan).
