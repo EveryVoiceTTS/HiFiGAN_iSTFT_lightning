@@ -36,7 +36,7 @@ def preprocess(
     ),
     overwrite: bool = typer.Option(False, "-O", "--overwrite"),
 ):
-    config = CONFIGS[name.value]
+    config = HiFiGANConfig.load_config_from_path(CONFIGS[name.value])
     preprocessor = Preprocessor(config)
     to_preprocess = {k: k in data for k in PreprocessCategories.__members__.keys()}  # type: ignore
     if not data:
@@ -61,7 +61,7 @@ def train(
     config_args: List[str] = typer.Option(None, "--config", "-c"),
     config_path: Path = typer.Option(None, exists=True, dir_okay=False, file_okay=True),
 ):
-    original_config = CONFIGS[name.value]
+    original_config = HiFiGANConfig.load_config_from_path(CONFIGS[name.value])
     config: HiFiGANConfig = update_config_from_cli_args(config_args, original_config)
     config = update_config_from_path(config_path, config)
     tensorboard_logger = TensorBoardLogger(**(config.training.logger.dict()))

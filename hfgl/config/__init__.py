@@ -72,9 +72,7 @@ class HiFiGANConfig(PartialConfigModel):
         return HiFiGANConfig(**config)
 
 
-CONFIGS: Dict[str, HiFiGANConfig] = {
-    "base": HiFiGANConfig.load_config_from_path(Path(__file__).parent / "base.yaml"),
-    "test": HiFiGANConfig.load_config_from_path(
-        Path(__file__).parent / "test" / "test.yaml"
-    ),
+CONFIGS: Dict[str, Path] = {
+    "base": Path(__file__).parent / "base.yaml",
+    "test": Path(__file__).parent / "test" / "test.yaml",
 }

@@ -61,9 +61,9 @@ You can also create a new config.yaml file and add it to the `CONFIGS` object in
 For example if you created a new config file at `myconfig.yaml` then you would update the `CONFIGS` object like so:
 
 ```python
-CONFIGS: Dict[str, HiFiGANConfig] = {
-    "base": HiFiGANConfig.load_config_from_path(Path(__file__).parent / "base.yaml"),
-    "myconfig": HiFiGANConfig.load_config_from_path(Path(__file__).parent / "myconfig.yaml"),
+CONFIGS: Dict[str, Path] = {
+    "base": Path(__file__).parent / "base.yaml",
+    "myconfig": Path(__file__).parent / "myconfig.yaml",
 }
 ```
 
