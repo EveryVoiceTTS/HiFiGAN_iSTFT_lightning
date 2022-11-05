@@ -66,7 +66,7 @@ class HiFiGANConfig(PartialConfigModel):
     preprocessing: PreprocessingConfig
 
     @staticmethod
-    def load_config_from_path(path: Path) -> dict:
+    def load_config_from_path(path: Path) -> "HiFiGANConfig":
         """Load a config from a path"""
         config = load_config_from_json_or_yaml_path(path)
         return HiFiGANConfig(**config)
@@ -74,4 +74,7 @@ class HiFiGANConfig(PartialConfigModel):
 
 CONFIGS: Dict[str, HiFiGANConfig] = {
     "base": HiFiGANConfig.load_config_from_path(Path(__file__).parent / "base.yaml"),
+    "test": HiFiGANConfig.load_config_from_path(
+        Path(__file__).parent / "test" / "test.yaml"
+    ),
 }

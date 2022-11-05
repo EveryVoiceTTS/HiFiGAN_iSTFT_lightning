@@ -48,7 +48,6 @@ def preprocess(
             output_path=output_path,
             process_audio=to_preprocess["audio"],
             process_spec=to_preprocess["mel"],
-            process_text=to_preprocess["text"],
             overwrite=overwrite,
         )
 
