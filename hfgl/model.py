@@ -9,11 +9,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from smts.config.base_config import VocoderConfig
 from smts.model.utils import create_depthwise_separable_convolution
-from smts.utils import (
-    dynamic_range_compression_torch,
-    get_spectral_transform,
-    plot_spectrogram,
-)
+from smts.utils import plot_spectrogram
+from smts.utils.heavy import dynamic_range_compression_torch, get_spectral_transform
 from torch.nn import AvgPool1d, Conv1d, Conv2d, ConvTranspose1d
 from torch.nn.utils import remove_weight_norm, spectral_norm, weight_norm
 

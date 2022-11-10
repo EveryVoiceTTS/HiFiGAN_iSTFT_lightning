@@ -5,15 +5,8 @@ from typing import List, Optional
 
 import typer
 from loguru import logger
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
-from pytorch_lightning.loggers import TensorBoardLogger
-from smts.preprocessor import Preprocessor
-from smts.utils import update_config_from_cli_args, update_config_from_path
 
 from .config import CONFIGS, HiFiGANConfig
-from .dataset import HiFiGANDataModule
-from .model import HiFiGAN
 
 app = typer.Typer(pretty_exceptions_show_locals=False)
 
@@ -36,6 +29,8 @@ def preprocess(
     ),
     overwrite: bool = typer.Option(False, "-O", "--overwrite"),
 ):
+    from smts.preprocessor import Preprocessor
+
     config = HiFiGANConfig.load_config_from_path(CONFIGS[name.value])
     preprocessor = Preprocessor(config)
     to_preprocess = {k: k in data for k in PreprocessCategories.__members__.keys()}  # type: ignore
@@ -61,6 +56,14 @@ def train(
     config_args: List[str] = typer.Option(None, "--config", "-c"),
     config_path: Path = typer.Option(None, exists=True, dir_okay=False, file_okay=True),
 ):
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
+    from pytorch_lightning.loggers import TensorBoardLogger
+    from smts.utils import update_config_from_cli_args, update_config_from_path
+
+    from .dataset import HiFiGANDataModule
+    from .model import HiFiGAN
+
     original_config = HiFiGANConfig.load_config_from_path(CONFIGS[name.value])
     config: HiFiGANConfig = update_config_from_cli_args(config_args, original_config)
     config = update_config_from_path(config_path, config)
