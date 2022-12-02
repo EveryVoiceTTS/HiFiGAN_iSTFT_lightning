@@ -48,10 +48,32 @@ def preprocess(
 
 
 @app.command()
+def synthesize(
+    data_path: Path = typer.Option(
+        None, "--input", "-i", exists=True, dir_okay=False, file_okay=True
+    ),
+    generator_path: Path = typer.Option(
+        None, "--model", "-m", exists=True, dir_okay=False, file_okay=True
+    ),
+):
+    import torch
+    from scipy.io.wavfile import write
+
+    from .utils import synthesize_data
+
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    checkpoint = torch.load(generator_path, map_location=device)
+    data = torch.load(data_path, map_location=device)
+    wav, sr = synthesize_data(data, checkpoint)
+    logger.info(f"Writing file {data_path}.wav")
+    write(f"{data_path}.wav", sr, wav)
+
+
+@app.command()
 def train(
     name: CONFIGS_ENUM,
-    accelerator: str = typer.Option("auto"),
-    devices: str = typer.Option("auto"),
+    accelerator: str = typer.Option("auto", "--accelerator", "-a"),
+    devices: str = typer.Option("auto", "--devices", "-d"),
     strategy: str = typer.Option(None),
     config_args: List[str] = typer.Option(None, "--config", "-c"),
     config_path: Path = typer.Option(None, exists=True, dir_okay=False, file_okay=True),
@@ -96,7 +118,7 @@ def train(
         else None
     )
     tensorboard_logger.log_hyperparams(config.dict())
-    trainer.fit(vocoder, data, ckpt_path=last_ckpt)
+    trainer.fit(vocoder, data, ckpt_path=last_ckpt)  # type: ignore
 
 
 if __name__ == "__main__":

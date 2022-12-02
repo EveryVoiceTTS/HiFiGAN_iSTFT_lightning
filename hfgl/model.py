@@ -7,8 +7,8 @@ import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from smts.config.base_config import VocoderConfig
 from smts.model.utils import create_depthwise_separable_convolution
+from smts.model.vocoder.config import VocoderConfig
 from smts.utils import plot_spectrogram
 from smts.utils.heavy import dynamic_range_compression_torch, get_spectral_transform
 from torch.nn import AvgPool1d, Conv1d, Conv2d, ConvTranspose1d
@@ -320,7 +320,7 @@ class Generator(torch.nn.Module):
                 if xs is None:
                     xs = self.resblocks[i * self.num_kernels + j](x)
                 else:
-                    xs += self.resblocks[i * self.num_kernels + j](x)
+                    xs = xs + self.resblocks[i * self.num_kernels + j](x)
             x = xs / self.num_kernels
         x = self.config.model.activation_function(x)
         if self.config.model.istft_layer:
@@ -335,7 +335,6 @@ class Generator(torch.nn.Module):
             return x
 
     def remove_weight_norm(self):
-        print("Removing weight norm...")
         for layer in self.ups:
             if layer.__class__.__name__ == "Sequential":
                 for sub_layer in layer:
@@ -579,7 +578,15 @@ class HiFiGAN(pl.LightningModule):
                 self.generator.post_n_fft // 4,
             )
         # TODO: figure out multiple nodes/gpus: https://pytorch-lightning.readthedocs.io/en/1.4.0/advanced/multi_gpu.html
-        # TODO: figure out freezing layers
+        # TODO: figure out freezing
+        # if self.config.training.freeze_layers.get('all_layers', False):
+        #     self.freeze()
+        # if self.config.training.freeze_layers.get('mpd', False):
+        #     self.mpd.freeze()
+        # if self.config.training.freeze_layers.get('msd', False):
+        #     self.msd.freeze()
+        # if self.config.training.freeze_layers.get('generator', False):
+        #     self.generator.freeze()
 
     def forward(self, x):
         return self.generator(x)
@@ -605,7 +612,7 @@ class HiFiGAN(pl.LightningModule):
             f"g{gen_step}.ckpt",
         )
         torch.save(
-            self.generator.state_dict(),
+            {"state_dict": self.generator.state_dict(), "config": self.config},
             gen_path,
         )
         return checkpoint
@@ -731,7 +738,7 @@ class HiFiGAN(pl.LightningModule):
             self.device
         )  # size = (batch_size, segment_size)
         gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean()  # size = (1)
-        self.log("train/gradient_penalty", gradient_penalty)
+        self.log("training/gradient_penalty", gradient_penalty)
         return gradient_penalty
 
     def training_step(self, batch, batch_idx, optimizer_idx):
@@ -754,8 +761,8 @@ class HiFiGAN(pl.LightningModule):
                 self.spectral_transform(self.generated_wav).squeeze(1)[:, :, 1:]
             )
             # calculate loss
-            y_df_hat_r, y_df_hat_g, fmap_f_r, fmap_f_g = self.mpd(y, self.generated_wav)
-            y_ds_hat_r, y_ds_hat_g, fmap_s_r, fmap_s_g = self.msd(y, self.generated_wav)
+            _, y_df_hat_g, fmap_f_r, fmap_f_g = self.mpd(y, self.generated_wav)
+            _, y_ds_hat_g, fmap_s_r, fmap_s_g = self.msd(y, self.generated_wav)
             loss_fm_f = self.feature_loss(fmap_f_r, fmap_f_g)
             loss_fm_s = self.feature_loss(fmap_s_r, fmap_s_g)
             # loss_gen_f = -torch.mean(y_df_hat_g)
@@ -828,7 +835,6 @@ class HiFiGAN(pl.LightningModule):
             return disc_loss_total
 
     def validation_step(self, batch, batch_idx):
-        # TODO: batch size should be 1, should process full files and samples should be selected chosen on the fly and not cached. Look into DistributedSampler from HiFiGAN
         x, y, bn, y_mel = batch
         current_step = (
             self.global_step // 2

@@ -1,11 +1,12 @@
-import math
 import random
 from pathlib import Path
 
 import torch
-from smts.config.base_config import VocoderConfig
 from smts.dataloader import BaseDataModule
+from smts.model.vocoder.config import VocoderConfig
 from torch.utils.data import Dataset, random_split
+
+from .utils import get_all_segments
 
 
 class SpecDataset(Dataset):
@@ -17,7 +18,7 @@ class SpecDataset(Dataset):
         self.use_segments = use_segments
         self.audio_files = audio_files
         self.preprocessed_dir = Path(self.config.preprocessing.save_dir)
-        self.finetune = finetune
+        self.finetune = self.config.training.finetune
         random.seed(self.config.training.seed)
         self.segment_size = self.config.preprocessing.audio.vocoder_segment_size
         self.output_sampling_rate = self.config.preprocessing.audio.output_sampling_rate
@@ -41,23 +42,25 @@ class SpecDataset(Dataset):
         language = "default" if "language" not in item else item["language"]
         y = torch.load(
             self.preprocessed_dir
+            / "audio"
             / self.sep.join(
                 [
                     item["basename"],
                     speaker,
                     language,
-                    f"audio-{self.output_sampling_rate}.npy",
+                    f"audio-{self.output_sampling_rate}.pt",
                 ]
             )
         ).squeeze()  # [samples] should be output sample rate, squeeze to get rid of channels just in case
         y_mel = torch.load(
             self.preprocessed_dir
+            / "spec"
             / self.sep.join(
                 [
                     item["basename"],
                     speaker,
                     language,
-                    f"spec-{self.output_sampling_rate}-{self.config.preprocessing.audio.spec_type}.npy",
+                    f"spec-{self.output_sampling_rate}-{self.config.preprocessing.audio.spec_type}.pt",
                 ]
             )
         )  # [mel_bins, frames]
@@ -65,50 +68,34 @@ class SpecDataset(Dataset):
             # If finetuning, use the synthesized spectral features
             x = torch.load(
                 self.preprocessed_dir
-                / self.sep.join(
-                    [item["basename"], speaker, language, "spec-synthesized.npy"]
-                )
-            )
-        else:
-            x = torch.load(
-                self.preprocessed_dir
+                / "synthesized_spec"
                 / self.sep.join(
                     [
                         item["basename"],
                         speaker,
                         language,
-                        f"spec-{self.input_sampling_rate}-{self.config.preprocessing.audio.spec_type}.npy",
+                        f"spec-pred-{self.input_sampling_rate}-{self.config.preprocessing.audio.spec_type}.pt",
+                    ]
+                )
+            )
+        else:
+            x = torch.load(
+                self.preprocessed_dir
+                / "spec"
+                / self.sep.join(
+                    [
+                        item["basename"],
+                        speaker,
+                        language,
+                        f"spec-{self.input_sampling_rate}-{self.config.preprocessing.audio.spec_type}.pt",
                     ]
                 )
             )  # [mel_bins, frames]
-        frames_per_seg = math.ceil(
-            self.segment_size / self.output_hop_size
-        )  # segment size is relative to output_sampling_rate, so we use the output_hop_size, but frames_per_seg is in frequency domain, so invariant to x and y_mel
-        # other implementations just resample y and take the mel spectrogram of that, but this solution allows for segmenting predicted mel spectrograms from the acoustic feature prediction network too
         if self.use_segments:
-            # randomly select a segment, if the segment is too short, pad it with zeros
-            if y.size(0) >= self.segment_size:
-                max_spec_start = x.size(1) - frames_per_seg - 1
-                spec_start = random.randint(0, max_spec_start)
-                x = x[:, spec_start : spec_start + frames_per_seg]
-                y_mel = y_mel[:, spec_start : spec_start + frames_per_seg]
-                y = y[
-                    spec_start
-                    * self.output_hop_size : (spec_start + frames_per_seg)
-                    * self.output_hop_size,
-                ]
-            else:
-                x = torch.nn.functional.pad(
-                    x, (0, frames_per_seg - x.size(1)), "constant"
-                )
-                y_mel = torch.nn.functional.pad(
-                    y_mel,
-                    (0, frames_per_seg - y_mel.size(1)),
-                    "constant",
-                )
-                y = torch.nn.functional.pad(
-                    y, (0, self.segment_size - y.size(0)), "constant"
-                )
+            x, y, y_mel = get_all_segments(
+                x, y, y_mel, self.segment_size, self.output_hop_size
+            )
+
         return (x, y, self.audio_files[index]["basename"], y_mel)
 
     def __len__(self):
