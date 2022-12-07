@@ -3,7 +3,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Callable, List, Union
 
-from pydantic import root_validator
+from pydantic import Field, root_validator
 from smts.config.preprocessing_config import PreprocessingConfig
 from smts.config.shared_types import (
     AdamOptimizer,
@@ -25,7 +25,7 @@ class HiFiGANResblock(Enum):
 class HiFiGANDepthwiseBlocks(ConfigModel):
     """Only currently implemented for the generator"""
 
-    generator: bool
+    generator: bool = False
 
 
 class HiFiGANTrainTypes(Enum):
@@ -35,15 +35,17 @@ class HiFiGANTrainTypes(Enum):
 
 
 class HiFiGANModelConfig(ConfigModel):
-    resblock: HiFiGANResblock
-    upsample_rates: List[int]
-    upsample_kernel_sizes: List[int]
-    upsample_initial_channel: int
-    resblock_kernel_sizes: List[int]
-    resblock_dilation_sizes: List[List[int]]
-    depthwise_separable_convolutions: HiFiGANDepthwiseBlocks
-    activation_function: Callable
-    istft_layer: bool
+    resblock: HiFiGANResblock = HiFiGANResblock.one
+    upsample_rates: List[int] = [8, 8]
+    upsample_kernel_sizes: List[int] = [16, 16]
+    upsample_initial_channel: int = 512
+    resblock_kernel_sizes: List[int] = [3, 7, 11]
+    resblock_dilation_sizes: List[List[int]] = [[1, 3, 5], [1, 3, 5], [1, 3, 5]]
+    depthwise_separable_convolutions: HiFiGANDepthwiseBlocks = Field(
+        default_factory=HiFiGANDepthwiseBlocks
+    )
+    activation_function: Callable = "smts.utils.original_hifigan_leaky_relu"  # type: ignore
+    istft_layer: bool = True
 
     @convert_callables(kwargs_to_convert=["activation_function"])
     def __init__(
@@ -62,19 +64,21 @@ class HiFiGANFreezingLayers(ConfigModel):
 
 
 class HiFiGANTrainingConfig(BaseTrainingConfig):
-    generator_warmup_steps: int
-    gan_type: HiFiGANTrainTypes
-    optimizer: Union[AdamOptimizer, AdamWOptimizer, RMSOptimizer]
-    wgan_clip_value: float
-    use_weighted_sampler: bool
-    freeze_layers: HiFiGANFreezingLayers = HiFiGANFreezingLayers()
+    generator_warmup_steps: int = 0
+    gan_type: HiFiGANTrainTypes = HiFiGANTrainTypes.original
+    optimizer: Union[AdamOptimizer, AdamWOptimizer, RMSOptimizer] = Field(
+        default_factory=AdamWOptimizer
+    )
+    wgan_clip_value: float = 0.01
+    use_weighted_sampler: bool = False
+    freeze_layers: HiFiGANFreezingLayers = Field(default_factory=HiFiGANFreezingLayers)
     finetune: bool = False
 
 
 class HiFiGANConfig(PartialConfigModel):
-    model: HiFiGANModelConfig
-    training: HiFiGANTrainingConfig
-    preprocessing: PreprocessingConfig
+    model: HiFiGANModelConfig = Field(default_factory=HiFiGANModelConfig)
+    training: HiFiGANTrainingConfig = Field(default_factory=HiFiGANTrainingConfig)
+    preprocessing: PreprocessingConfig = Field(default_factory=PreprocessingConfig)
 
     @staticmethod
     def load_config_from_path(path: Path) -> "HiFiGANConfig":
