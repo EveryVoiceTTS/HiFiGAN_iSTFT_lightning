@@ -4,6 +4,7 @@ from pathlib import Path
 import torch
 from smts.dataloader import BaseDataModule
 from smts.model.vocoder.config import VocoderConfig
+from smts.utils import check_dataset_size
 from torch.utils.data import Dataset, random_split
 
 from .utils import get_all_segments
@@ -119,10 +120,14 @@ class HiFiGANDataModule(BaseDataModule):
 
     def prepare_data(self):
         self.load_dataset()
-        train_split = int(len(self.dataset) * self.train_split)
+        self.dataset_length = len(self.dataset)
+        train_samples = int(self.dataset_length * self.train_split)
+        val_samples = self.dataset_length - train_samples
         self.train_dataset, self.val_dataset = random_split(
-            self.dataset, [train_split, len(self.dataset) - train_split]
+            self.dataset, [train_samples, val_samples]
         )
+        check_dataset_size(self.batch_size, train_samples, "training")
+        check_dataset_size(self.batch_size, val_samples, "validation")
         self.train_dataset = SpecDataset(
             self.train_dataset, self.config, use_segments=True
         )

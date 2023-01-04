@@ -1,6 +1,8 @@
+import glob
 import itertools
 import math
 import os
+import re
 
 import numpy as np
 import pytorch_lightning as pl
@@ -604,18 +606,43 @@ class HiFiGAN(pl.LightningModule):
         if not os.path.exists(gen_dir):
             os.makedirs(gen_dir)
         gen_step = self.global_step // 2
-        gen_path = os.path.join(
+        gen_dir = os.path.join(
             self.config.training.logger.save_dir,
             self.config.training.logger.name,
             version,
             "checkpoints",
+        )
+        gen_path = os.path.join(
+            gen_dir,
             f"g{gen_step}.ckpt",
         )
+        self.generator_cleanup(gen_dir=gen_dir)
         torch.save(
             {"state_dict": self.generator.state_dict(), "config": self.config},
             gen_path,
         )
         return checkpoint
+
+    def generator_cleanup(self, gen_dir):
+        """Delete all but last K generator ckpts"""
+        gen_glob = os.path.join(gen_dir, "g*.ckpt")
+        step_pattern = r"g(?P<step>\d*).ckpt"
+        gens = sorted(
+            [
+                {
+                    "ckpt": int(
+                        re.search(step_pattern, os.path.basename(x)).group("step")
+                    ),
+                    "path": x,
+                }
+                for x in glob.glob(gen_glob)
+            ],
+            key=lambda x: x["ckpt"],
+            reverse=True,
+        )
+        if len(gens) > self.config.training.save_top_k_ckpts:
+            for gen in gens[self.config.training.save_top_k_ckpts :]:
+                os.remove(gen["path"])
 
     def configure_optimizers(self):
         if self.config.training.optimizer.name == "adamw":
