@@ -36,6 +36,7 @@ class HiFiGANTrainTypes(Enum):
 
 class HiFiGANModelConfig(ConfigModel):
     resblock: HiFiGANResblock = HiFiGANResblock.one
+    super_resolution_rate: int = 1
     upsample_rates: List[int] = [8, 8]
     upsample_kernel_sizes: List[int] = [16, 16]
     upsample_initial_channel: int = 512
@@ -91,11 +92,18 @@ class HiFiGANConfig(PartialConfigModel):
         # helper variables
         preprocessing_config: PreprocessingConfig = values["preprocessing"]
         model_config: HiFiGANModelConfig = values["model"]
+        super_resolution_rate = model_config.super_resolution_rate
         sampling_rate = preprocessing_config.audio.input_sampling_rate
         upsampled_sampling_rate = preprocessing_config.audio.output_sampling_rate
         upsample_rate = upsampled_sampling_rate // sampling_rate
         upsampled_hop_size = upsample_rate * preprocessing_config.audio.fft_hop_frames
-        upsample_rate_product = math.prod(model_config.upsample_rates)
+        upsample_rate_product = math.prod(model_config.upsample_rates) * super_resolution_rate
+
+        # check super resolution rate
+        if super_resolution_rate == 0:
+            raise ValueError('Super resolution rate cannot be 0, please set to 1 instead')
+        if (super_resolution_rate > 1 and super_resolution_rate % 2) != 0:
+            raise ValueError('Super resolution currently only works for even multiples. Please set to an even number')
         # check that same number of kernels and kernel sizes exist
         if len(model_config.upsample_kernel_sizes) != len(model_config.upsample_rates):
             raise ValueError(

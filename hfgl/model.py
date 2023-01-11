@@ -222,6 +222,11 @@ class Generator(torch.nn.Module):
         self.model_vocoder_config = config.model
         self.num_kernels = len(self.model_vocoder_config.resblock_kernel_sizes)
         self.num_upsamples = len(self.model_vocoder_config.upsample_rates)
+        if self.model_vocoder_config.super_resolution_rate > 1:
+            self.super_resolution_layers = []
+            for _ in range(int(math.log(self.model_vocoder_config.super_resolution_rate, 2))):
+                self.super_resolution_layers.append(UpsampleBlock(self.model_vocoder_config.upsample_initial_channel // (2 ** (len(self.model_vocoder_config.upsample_rates))), 2))
+            self.super_resolution_layers = nn.Sequential(*self.super_resolution_layers)
         self.conv_pre = (
             create_depthwise_separable_convolution(
                 in_channels=self.audio_config.n_mels,
@@ -295,7 +300,7 @@ class Generator(torch.nn.Module):
         if self.config.model.istft_layer:
             self.post_n_fft = (
                 self.audio_config.n_fft * self.sampling_rate_change
-            ) // math.prod(self.config.model.upsample_rates)
+            ) // math.prod(self.config.model.upsample_rates) * self.model_vocoder_config.super_resolution_rate
             self.reflection_pad = torch.nn.ReflectionPad1d((1, 0))
             conv_post_out_channels = self.post_n_fft + 2
         else:
@@ -325,6 +330,8 @@ class Generator(torch.nn.Module):
                     xs = xs + self.resblocks[i * self.num_kernels + j](x)
             x = xs / self.num_kernels
         x = self.config.model.activation_function(x)
+        if self.model_vocoder_config.super_resolution_rate > 1:
+            x = self.super_resolution_layers(x)
         if self.config.model.istft_layer:
             x = self.reflection_pad(x)
             x = self.conv_post(x)
@@ -428,6 +435,22 @@ class DiscriminatorP(torch.nn.Module):
         x = torch.flatten(x, 1, -1)
 
         return x, fmap
+
+
+class UpsampleBlock(nn.Module):
+    # From https://github.com/Lornatang/SRGAN-PyTorch/blob/main/model.py
+    def __init__(self, channels: int, upscale_factor: int) -> None:
+        super(UpsampleBlock, self).__init__()
+        self.upsample_block = nn.Sequential(
+            nn.Conv2d(channels, channels * upscale_factor * upscale_factor, (3, 3), (1, 1), (1, 1)),
+            nn.PixelShuffle(2),
+            nn.PReLU(),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+
+        out = self.upsample_block(x.transpose(0, 1).transpose(1, 2))
+        return out
 
 
 class MultiPeriodDiscriminator(torch.nn.Module):
