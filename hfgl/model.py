@@ -430,15 +430,8 @@ class DiscriminatorP(torch.nn.Module):
 class MultiPeriodDiscriminator(torch.nn.Module):
     def __init__(self, config):
         super(MultiPeriodDiscriminator, self).__init__()
-        self.discriminators = nn.ModuleList(
-            [
-                DiscriminatorP(2, config),
-                DiscriminatorP(3, config),
-                DiscriminatorP(5, config),
-                DiscriminatorP(7, config),
-                DiscriminatorP(11, config),
-            ]
-        )
+        mpd_layers = [DiscriminatorP(n, config) for n in config.model.mpd_layers]
+        self.discriminators = nn.ModuleList(mpd_layers)
 
     def forward_interpolates(self, interp):
         y_ds = []
@@ -497,17 +490,15 @@ class DiscriminatorS(torch.nn.Module):
 
 
 class MultiScaleDiscriminator(torch.nn.Module):
-    def __init__(self, config):
+    def __init__(self, config: VocoderConfig):
         super(MultiScaleDiscriminator, self).__init__()
-        self.discriminators = nn.ModuleList(
-            [
-                DiscriminatorS(config, use_spectral_norm=True),
-                DiscriminatorS(config),
-                DiscriminatorS(config),
-            ]
-        )
+        msd_layers = [
+            DiscriminatorS(config, use_spectral_norm=i == 0)
+            for i in range(config.model.msd_layers)
+        ]
+        self.discriminators = nn.ModuleList(msd_layers)
         self.meanpools = nn.ModuleList(
-            [AvgPool1d(4, 2, padding=2), AvgPool1d(4, 2, padding=2)]
+            [AvgPool1d(4, 2, padding=2) for _ in range(config.model.msd_layers - 1)]
         )
 
     def forward_interpolates(self, interp):

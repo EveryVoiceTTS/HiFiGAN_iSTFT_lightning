@@ -46,6 +46,8 @@ class HiFiGANModelConfig(ConfigModel):
     )
     activation_function: Callable = "everyvoice.utils.original_hifigan_leaky_relu"  # type: ignore
     istft_layer: bool = True
+    msd_layers: int = 3
+    mpd_layers: List[int] = [2, 3, 5, 7, 11]
 
     @convert_callables(kwargs_to_convert=["activation_function"])
     def __init__(
