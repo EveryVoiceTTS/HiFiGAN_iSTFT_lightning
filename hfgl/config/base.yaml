@@ -9,6 +9,8 @@ model:
     generator: False
   activation_function: "smts.utils.original_hifigan_leaky_relu"
   istft_layer: True
+  msd_layers: 3
+  mpd_layers: [2, 3, 5, 7, 11]
 training:
   generator_warmup_steps: 0
   gan_type: "original"
