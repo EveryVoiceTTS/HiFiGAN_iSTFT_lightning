@@ -12,7 +12,7 @@
 
 This library is for training [HiFiGAN](https://arxiv.org/abs/2010.05646) and [iSTFT-Net](https://arxiv.org/abs/2203.02395) vocoders for speech synthesis. This implementation is one part of the [Speech Generation for Indigenous Language Education (SGILE)](#background) Project.
 
-This repo has been separated in case you would like to use it separately from the broader SGILE system, but if you are looking to build speech synthesis systems from scratch, please visit [the main repository](https://github.com/roedoejet/SmallTeamSpeech)
+This repo has been separated in case you would like to use it separately from the broader SGILE system, but if you are looking to build speech synthesis systems from scratch, please visit [the main repository](https://github.com/roedoejet/EveryVoice)
 
 ## Table of Contents
 - HiFiGAN/iSTFT-Net Vocoder

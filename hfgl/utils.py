@@ -4,7 +4,7 @@ from typing import Tuple
 
 import numpy as np
 import torch
-from smts.utils.heavy import get_spectral_transform
+from everyvoice.utils.heavy import get_spectral_transform
 
 from .model import Generator
 

@@ -1,4 +1,4 @@
-""" Setup for smts
+""" Setup for iSTFT Vocoder
 """
 
 import datetime as dt

@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import Callable, List, Union
 
 from pydantic import Field, root_validator
-from smts.config.preprocessing_config import PreprocessingConfig
-from smts.config.shared_types import (
+from everyvoice.config.preprocessing_config import PreprocessingConfig
+from everyvoice.config.shared_types import (
     AdamOptimizer,
     AdamWOptimizer,
     BaseTrainingConfig,
@@ -13,8 +13,8 @@ from smts.config.shared_types import (
     PartialConfigModel,
     RMSOptimizer,
 )
-from smts.config.utils import convert_callables
-from smts.utils import load_config_from_json_or_yaml_path, return_configs_from_dir
+from everyvoice.config.utils import convert_callables
+from everyvoice.utils import load_config_from_json_or_yaml_path, return_configs_from_dir
 
 
 class HiFiGANResblock(Enum):
@@ -44,7 +44,7 @@ class HiFiGANModelConfig(ConfigModel):
     depthwise_separable_convolutions: HiFiGANDepthwiseBlocks = Field(
         default_factory=HiFiGANDepthwiseBlocks
     )
-    activation_function: Callable = "smts.utils.original_hifigan_leaky_relu"  # type: ignore
+    activation_function: Callable = "everyvoice.utils.original_hifigan_leaky_relu"  # type: ignore
     istft_layer: bool = True
 
     @convert_callables(kwargs_to_convert=["activation_function"])

@@ -5,7 +5,7 @@ from typing import List, Optional
 import typer
 from loguru import logger
 from merge_args import merge_args
-from smts.base_cli.interfaces import (
+from everyvoice.base_cli.interfaces import (
     preprocess_base_command_interface,
     train_base_command_interface,
 )
@@ -31,7 +31,7 @@ def preprocess(
     data: Optional[List[PreprocessCategories]] = typer.Option(None, "-d", "--data"),
     **kwargs,
 ):
-    from smts.base_cli.helpers import preprocess_base_command
+    from everyvoice.base_cli.helpers import preprocess_base_command
 
     preprocess_base_command(
         name=name,
@@ -46,7 +46,7 @@ def preprocess(
 @app.command()
 @merge_args(train_base_command_interface)
 def train(name: CONFIGS_ENUM = typer.Option(None, "--name", "-n"), **kwargs):
-    from smts.base_cli.helpers import train_base_command
+    from everyvoice.base_cli.helpers import train_base_command
 
     from .dataset import HiFiGANDataModule
     from .model import HiFiGAN

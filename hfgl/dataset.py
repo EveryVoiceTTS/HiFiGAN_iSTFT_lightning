@@ -2,9 +2,9 @@ import random
 from pathlib import Path
 
 import torch
-from smts.dataloader import BaseDataModule
-from smts.model.vocoder.config import VocoderConfig
-from smts.utils import check_dataset_size
+from everyvoice.dataloader import BaseDataModule
+from everyvoice.model.vocoder.config import VocoderConfig
+from everyvoice.utils import check_dataset_size
 from torch.utils.data import Dataset, random_split
 
 from .utils import get_all_segments
