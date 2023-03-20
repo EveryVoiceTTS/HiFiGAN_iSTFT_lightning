@@ -3,7 +3,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Callable, List, Union
 
-from pydantic import Field, root_validator
+from pydantic import Field, root_validator, validator
 from everyvoice.config.preprocessing_config import PreprocessingConfig
 from everyvoice.config.shared_types import (
     AdamOptimizer,
@@ -13,7 +13,7 @@ from everyvoice.config.shared_types import (
     PartialConfigModel,
     RMSOptimizer,
 )
-from everyvoice.config.utils import convert_callables
+from everyvoice.config.utils import string_to_callable
 from everyvoice.utils import load_config_from_json_or_yaml_path, return_configs_from_dir
 
 
@@ -49,14 +49,11 @@ class HiFiGANModelConfig(ConfigModel):
     msd_layers: int = 3
     mpd_layers: List[int] = [2, 3, 5, 7, 11]
 
-    @convert_callables(kwargs_to_convert=["activation_function"])
-    def __init__(
-        self,
-        **data,
-    ) -> None:
-        """Custom init to process activation function"""
-        super().__init__(**data)
-
+    @validator("activation_function", pre=True, always=True)
+    def convert_callable_activation_function(cls, v, values):
+        func = string_to_callable(v)
+        values['activation_function'] = func
+        return func
 
 class HiFiGANFreezingLayers(ConfigModel):
     all_layers: bool = False
