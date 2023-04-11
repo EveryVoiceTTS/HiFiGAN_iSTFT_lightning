@@ -1,11 +1,10 @@
-import random
 from pathlib import Path
 
 import torch
 from everyvoice.dataloader import BaseDataModule
 from everyvoice.model.vocoder.config import VocoderConfig
 from everyvoice.utils import check_dataset_size
-from torch.utils.data import Dataset, random_split
+from torch.utils.data import Dataset
 
 from .utils import get_all_segments
 
@@ -20,7 +19,6 @@ class SpecDataset(Dataset):
         self.audio_files = audio_files
         self.preprocessed_dir = Path(self.config.preprocessing.save_dir)
         self.finetune = self.config.training.finetune
-        random.seed(self.config.training.seed)
         self.segment_size = self.config.preprocessing.audio.vocoder_segment_size
         self.output_sampling_rate = self.config.preprocessing.audio.output_sampling_rate
         self.input_sampling_rate = self.config.preprocessing.audio.input_sampling_rate
@@ -111,21 +109,19 @@ class HiFiGANDataModule(BaseDataModule):
         super().__init__(config=config)
         self.use_weighted_sampler = config.training.use_weighted_sampler
         self.batch_size = config.training.batch_size
-        self.train_split = self.config.training.train_split
 
     def load_dataset(self):
-        self.dataset = self.config.training.filelist_loader(
-            self.config.training.filelist
+        self.train_dataset = self.config.training.filelist_loader(
+            self.config.training.training_filelist
+        )
+        self.val_dataset = self.config.training.filelist_loader(
+            self.config.training.validation_filelist
         )
 
     def prepare_data(self):
         self.load_dataset()
-        self.dataset_length = len(self.dataset)
-        train_samples = int(self.dataset_length * self.train_split)
-        val_samples = self.dataset_length - train_samples
-        self.train_dataset, self.val_dataset = random_split(
-            self.dataset, [train_samples, val_samples]
-        )
+        train_samples = len(self.train_dataset)
+        val_samples = len(self.val_dataset)
         check_dataset_size(self.batch_size, train_samples, "training")
         check_dataset_size(self.batch_size, val_samples, "validation")
         self.train_dataset = SpecDataset(
@@ -144,7 +140,6 @@ class HiFiGANFineTuneDataModule(BaseDataModule):
         super().__init__(config=config)
         self.use_weighted_sampler = config.training.use_weighted_sampler
         self.batch_size = config.training.batch_size
-        self.train_split = self.config.training.train_split
 
     def load_dataset(self):
         self.dataset = SpecDataset(config=self.config, finetune=True)
