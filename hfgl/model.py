@@ -9,7 +9,10 @@ import torch.nn.functional as F
 from everyvoice.model.utils import create_depthwise_separable_convolution
 from everyvoice.model.vocoder.config import VocoderConfig
 from everyvoice.utils import plot_spectrogram
-from everyvoice.utils.heavy import dynamic_range_compression_torch, get_spectral_transform
+from everyvoice.utils.heavy import (
+    dynamic_range_compression_torch,
+    get_spectral_transform,
+)
 from torch.nn import AvgPool1d, Conv1d, Conv2d, ConvTranspose1d
 from torch.nn.utils import remove_weight_norm, spectral_norm, weight_norm
 
