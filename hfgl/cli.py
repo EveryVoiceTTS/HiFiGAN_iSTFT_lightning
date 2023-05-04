@@ -12,7 +12,10 @@ from merge_args import merge_args
 
 from .config import CONFIGS, HiFiGANConfig
 
-app = typer.Typer(pretty_exceptions_show_locals=False)
+app = typer.Typer(
+    pretty_exceptions_show_locals=False,
+    help="A PyTorch Lightning implementation of the HiFiGAN and iSTFT-Net vocoders",
+)
 
 _config_keys = {k: k for k in CONFIGS.keys()}
 
