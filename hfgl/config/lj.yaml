@@ -28,13 +28,13 @@ training:
   ckpt_epochs: 1
   max_epochs: 1000
   seed: 1234
-  finetune_checkpoint: "./logs/LJ/base-vocoder/checkpoints/last.ckpt"
+  finetune_checkpoint: "./logs_and_checkpoints/LJ/base-vocoder/checkpoints/last.ckpt"
   finetune: true
   filelist: "./preprocessed/LJ/processed_filelist.psv"
   filelist_loader: "everyvoice.utils.generic_dict_loader"
   logger:
     name: "LJ"
-    save_dir: "./logs"
+    save_dir: "./logs_and_checkpoints"
     sub_dir: "everyvoice.utils.get_current_time"
     version: "lj-finetune"
   val_data_workers: 0
