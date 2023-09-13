@@ -31,7 +31,9 @@ class PreprocessCategories(str, Enum):
 @merge_args(preprocess_base_command_interface)
 def preprocess(
     name: CONFIGS_ENUM = typer.Option(None, "--name"),
-    data: Optional[List[PreprocessCategories]] = typer.Option(None, "-d", "--data"),
+    steps: Optional[List[PreprocessCategories]] = [
+        cat.value for cat in PreprocessCategories
+    ],
     **kwargs,
 ):
     from everyvoice.base_cli.helpers import preprocess_base_command
@@ -40,7 +42,7 @@ def preprocess(
         name=name,
         configs=CONFIGS,
         model_config=HiFiGANConfig,
-        data=data,
+        steps=steps,
         preprocess_categories=PreprocessCategories,
         **kwargs,
     )
