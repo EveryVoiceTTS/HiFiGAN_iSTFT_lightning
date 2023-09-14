@@ -1,6 +1,6 @@
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 import typer
 from everyvoice.base_cli.interfaces import (
@@ -9,6 +9,7 @@ from everyvoice.base_cli.interfaces import (
 )
 from loguru import logger
 from merge_args import merge_args
+from typing_extensions import Annotated
 
 from .config import CONFIGS, HiFiGANConfig
 
@@ -30,12 +31,12 @@ class PreprocessCategories(str, Enum):
 @app.command()
 @merge_args(preprocess_base_command_interface)
 def preprocess(
+    steps: Annotated[List[PreprocessCategories], typer.Argument()] = None,
     name: CONFIGS_ENUM = typer.Option(None, "--name"),
-    steps: Optional[List[PreprocessCategories]] = [
-        cat.value for cat in PreprocessCategories
-    ],
     **kwargs,
 ):
+    if not steps:
+        steps = [cat.value for cat in PreprocessCategories]
     from everyvoice.base_cli.helpers import preprocess_base_command
 
     preprocess_base_command(
