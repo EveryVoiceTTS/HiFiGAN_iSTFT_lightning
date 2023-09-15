@@ -13,7 +13,7 @@ from everyvoice.config.shared_types import (
     RMSOptimizer,
 )
 from everyvoice.config.utils import string_to_callable
-from everyvoice.utils import load_config_from_json_or_yaml_path, return_configs_from_dir
+from everyvoice.utils import load_config_from_json_or_yaml_path
 from pydantic import Field, root_validator, validator
 
 
@@ -133,7 +133,3 @@ class HiFiGANConfig(PartialConfigModel):
             )
 
         return values
-
-
-CONFIG_DIR = Path(__file__).parent
-CONFIGS = return_configs_from_dir(CONFIG_DIR)

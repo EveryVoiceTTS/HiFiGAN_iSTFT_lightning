@@ -9,18 +9,13 @@ from everyvoice.base_cli.interfaces import (
 )
 from loguru import logger
 from merge_args import merge_args
-from typing_extensions import Annotated
 
-from .config import CONFIGS, HiFiGANConfig
+from .config import HiFiGANConfig
 
 app = typer.Typer(
     pretty_exceptions_show_locals=False,
     help="A PyTorch Lightning implementation of the HiFiGAN and iSTFT-Net vocoders",
 )
-
-_config_keys = {k: k for k in CONFIGS.keys()}
-
-CONFIGS_ENUM = Enum("CONFIGS", _config_keys)  # type: ignore
 
 
 class PreprocessCategories(str, Enum):
@@ -31,36 +26,33 @@ class PreprocessCategories(str, Enum):
 @app.command()
 @merge_args(preprocess_base_command_interface)
 def preprocess(
-    steps: Annotated[List[PreprocessCategories], typer.Argument()] = None,
-    name: CONFIGS_ENUM = typer.Option(None, "--name"),
+    steps: List[PreprocessCategories] = typer.Option(
+        [cat.value for cat in PreprocessCategories],
+        "-s",
+        "--steps",
+        help="Which steps of the preprocessor to use. If none are provided, all steps will be performed.",
+    ),
     **kwargs,
 ):
-    if not steps:
-        steps = [cat.value for cat in PreprocessCategories]
     from everyvoice.base_cli.helpers import preprocess_base_command
 
     preprocess_base_command(
-        name=name,
-        configs=CONFIGS,
         model_config=HiFiGANConfig,
-        steps=steps,
-        preprocess_categories=PreprocessCategories,
+        steps=[step.name for step in steps],
         **kwargs,
     )
 
 
 @app.command()
 @merge_args(train_base_command_interface)
-def train(name: CONFIGS_ENUM = typer.Option(None, "--name", "-n"), **kwargs):
+def train(**kwargs):
     from everyvoice.base_cli.helpers import train_base_command
 
     from .dataset import HiFiGANDataModule
     from .model import HiFiGAN
 
     train_base_command(
-        name=name,
         model_config=HiFiGANConfig,
-        configs=CONFIGS,
         model=HiFiGAN,
         data_module=HiFiGANDataModule,
         monitor="validation/mel_spec_error",
@@ -71,12 +63,25 @@ def train(name: CONFIGS_ENUM = typer.Option(None, "--name", "-n"), **kwargs):
 @app.command()
 def synthesize(
     data_path: Path = typer.Option(
-        None, "--input", "-i", exists=True, dir_okay=False, file_okay=True
+        ...,
+        "--input",
+        "-i",
+        exists=True,
+        dir_okay=False,
+        file_okay=True,
+        help="The path to some spectral features",
     ),
     generator_path: Path = typer.Option(
-        None, "--model", "-m", exists=True, dir_okay=False, file_okay=True
+        ...,
+        "--model",
+        "-m",
+        exists=True,
+        dir_okay=False,
+        file_okay=True,
+        help="The path to a trained model",
     ),
 ):
+    """Given some Mel spectrograms and a trained model, generate some audio. i.e. perform *copy synthesis*"""
     import torch
     from scipy.io.wavfile import write
 
