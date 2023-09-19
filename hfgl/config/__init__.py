@@ -52,6 +52,17 @@ class HiFiGANModelConfig(ConfigModel):
     msd_layers: int = 3
     mpd_layers: List[int] = [2, 3, 5, 7, 11]
 
+<<<<<<< HEAD
+=======
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
+    @validator("activation_function", pre=True, always=True)
+    def convert_callable_activation_function(cls, v, values):
+        func = string_to_callable(v)
+        values["activation_function"] = func
+        return func
+
+>>>>>>> chore: migrate to pydantic 2
 
 class HiFiGANFreezingLayers(ConfigModel):
     all_layers: bool = False
