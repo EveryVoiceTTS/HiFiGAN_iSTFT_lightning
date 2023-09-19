@@ -1,7 +1,7 @@
 import math
 from enum import Enum
 from pathlib import Path
-from typing import Callable, List, Union
+from typing import List, Union
 
 from everyvoice.config.preprocessing_config import PreprocessingConfig
 from everyvoice.config.shared_types import (
@@ -12,9 +12,12 @@ from everyvoice.config.shared_types import (
     PartialConfigModel,
     RMSOptimizer,
 )
-from everyvoice.config.utils import string_to_callable
-from everyvoice.utils import load_config_from_json_or_yaml_path
-from pydantic import Field, root_validator, validator
+from everyvoice.config.utils import PossiblySerializedCallable
+from everyvoice.utils import (
+    load_config_from_json_or_yaml_path,
+    original_hifigan_leaky_relu,
+)
+from pydantic import Field, model_validator
 
 
 class HiFiGANResblock(Enum):
@@ -44,16 +47,10 @@ class HiFiGANModelConfig(ConfigModel):
     depthwise_separable_convolutions: HiFiGANDepthwiseBlocks = Field(
         default_factory=HiFiGANDepthwiseBlocks
     )
-    activation_function: Callable = "everyvoice.utils.original_hifigan_leaky_relu"  # type: ignore
+    activation_function: PossiblySerializedCallable = original_hifigan_leaky_relu
     istft_layer: bool = True
     msd_layers: int = 3
     mpd_layers: List[int] = [2, 3, 5, 7, 11]
-
-    @validator("activation_function", pre=True, always=True)
-    def convert_callable_activation_function(cls, v, values):
-        func = string_to_callable(v)
-        values["activation_function"] = func
-        return func
 
 
 class HiFiGANFreezingLayers(ConfigModel):
@@ -86,11 +83,11 @@ class HiFiGANConfig(PartialConfigModel):
         config = load_config_from_json_or_yaml_path(path)
         return HiFiGANConfig(**config)
 
-    @root_validator
-    def check_upsample_rate_consistency(cls, values):
+    @model_validator(mode="after")
+    def check_upsample_rate_consistency(self) -> "HiFiGANConfig":
         # helper variables
-        preprocessing_config: PreprocessingConfig = values["preprocessing"]
-        model_config: HiFiGANModelConfig = values["model"]
+        preprocessing_config: PreprocessingConfig = self.preprocessing
+        model_config: HiFiGANModelConfig = self.model
         sampling_rate = preprocessing_config.audio.input_sampling_rate
         upsampled_sampling_rate = preprocessing_config.audio.output_sampling_rate
         upsample_rate = upsampled_sampling_rate // sampling_rate
@@ -132,4 +129,4 @@ class HiFiGANConfig(PartialConfigModel):
                 f"Vocoder segment size: {preprocessing_config.audio.vocoder_segment_size} must be divisible by product of upsample rates: {upsample_rate_product}"
             )
 
-        return values
+        return self
