@@ -1,7 +1,7 @@
 import math
 from enum import Enum
 from pathlib import Path
-from typing import List, Union
+from typing import List, Optional, Union
 
 from everyvoice.config.preprocessing_config import PreprocessingConfig
 from everyvoice.config.shared_types import (
@@ -9,15 +9,14 @@ from everyvoice.config.shared_types import (
     AdamWOptimizer,
     BaseTrainingConfig,
     ConfigModel,
-    PartialConfigModel,
     RMSOptimizer,
 )
-from everyvoice.config.utils import PossiblySerializedCallable
+from everyvoice.config.utils import PossiblySerializedCallable, load_partials
 from everyvoice.utils import (
     load_config_from_json_or_yaml_path,
     original_hifigan_leaky_relu,
 )
-from pydantic import Field, model_validator
+from pydantic import Field, FilePath, model_validator
 
 
 class HiFiGANResblock(Enum):
@@ -72,10 +71,17 @@ class HiFiGANTrainingConfig(BaseTrainingConfig):
     finetune: bool = False
 
 
-class HiFiGANConfig(PartialConfigModel):
+class HiFiGANConfig(ConfigModel):
     model: HiFiGANModelConfig = Field(default_factory=HiFiGANModelConfig)
+    path_to_model_config_file: Optional[FilePath] = None
     training: HiFiGANTrainingConfig = Field(default_factory=HiFiGANTrainingConfig)
+    path_to_training_config_file: Optional[FilePath] = None
     preprocessing: PreprocessingConfig = Field(default_factory=PreprocessingConfig)
+    path_to_preprocessing_config_file: Optional[FilePath] = None
+
+    @model_validator(mode="before")
+    def load_partials(self):
+        return load_partials(self, ["model", "training", "preprocessing"])
 
     @staticmethod
     def load_config_from_path(path: Path) -> "HiFiGANConfig":
