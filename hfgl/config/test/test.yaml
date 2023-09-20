@@ -1,3 +1,0 @@
-extend_from: "./config/default/hifigan.yaml"
-override_with:
-  preprocessing: ./config/test/preprocessing-everyvoice.yaml
