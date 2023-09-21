@@ -4,23 +4,23 @@ from typing import Tuple
 
 import numpy as np
 import torch
+from everyvoice.model.vocoder.HiFiGAN_iSTFT_lightning.hfgl.model import HiFiGAN
 from everyvoice.utils.heavy import get_spectral_transform
-
-from .model import Generator
 
 
 def synthesize_data(data: torch.Tensor, generator_ckpt: dict) -> Tuple[np.ndarray, int]:
     """Synthesize a batch of waveforms from spectral features
 
     Args:
-        data_path (Path): path to data tensor. expects output from feature prediction network to be size (b=batch_size, t=number_of_frames, k=n_mels)
-        generator_path (Path): path to HiFiGANLightning checkpoint. expects checkpoint to have a 'config' key and HiFiGANConfig object value as well as a 'state_dict' key with model weight as the value
+        data_path (Tensor): data tensor. expects output from feature prediction network to be size (b=batch_size, t=number_of_frames, k=n_mels)
+        generator_path (dict): HiFiGANLightning checkpoint. expects checkpoint to have a 'hyper_parameters.config' key and HiFiGANConfig object value as well as a 'state_dict' key with model weight as the value
     Returns:
         Tuple[np.ndarray, int]: a 1-D array of the wav file and the sampling rate
     """
-    config = generator_ckpt["config"]
-    model = Generator(config).to(data.device)
+    config = generator_ckpt["hyper_parameters"]["config"]
+    model = HiFiGAN(config)
     model.load_state_dict(generator_ckpt["state_dict"])
+    model = model.generator
     model.eval()
     model.remove_weight_norm()
     if config.model.istft_layer:
