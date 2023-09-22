@@ -4,7 +4,7 @@ from typing import Tuple
 
 import numpy as np
 import torch
-from everyvoice.model.vocoder.HiFiGAN_iSTFT_lightning.hfgl.model import HiFiGAN
+from .model import HiFiGAN
 from everyvoice.utils.heavy import get_spectral_transform
 
 
