@@ -4,8 +4,9 @@ from typing import Tuple
 
 import numpy as np
 import torch
-from .model import HiFiGAN
 from everyvoice.utils.heavy import get_spectral_transform
+
+from .model import HiFiGAN
 
 
 def synthesize_data(data: torch.Tensor, generator_ckpt: dict) -> Tuple[np.ndarray, int]:
@@ -20,19 +21,21 @@ def synthesize_data(data: torch.Tensor, generator_ckpt: dict) -> Tuple[np.ndarra
     config = generator_ckpt["hyper_parameters"]["config"]
     model = HiFiGAN(config).to(data.device)
     model.load_state_dict(generator_ckpt["state_dict"])
-    model = model.generator
-    model.eval()
-    model.remove_weight_norm()
+    model.generator.eval()
+    model.generator.remove_weight_norm()
     if config.model.istft_layer:
         inverse_spectral_transform = get_spectral_transform(
-            "istft", model.post_n_fft, model.post_n_fft, model.post_n_fft // 4
+            "istft",
+            model.generator.post_n_fft,
+            model.generator.post_n_fft,
+            model.generator.post_n_fft // 4,
         ).to(data.device)
         with torch.no_grad():
-            mag, phase = model(data.transpose(1, 2))
+            mag, phase = model.generator(data.transpose(1, 2))
         wav = inverse_spectral_transform(mag * torch.exp(phase * 1j)).unsqueeze(-2)
     else:
         with torch.no_grad():
-            wav = model(data.transpose(1, 2))
+            wav = model.generator(data.transpose(1, 2))
     return (
         wav.squeeze().cpu().numpy(),
         config.preprocessing.audio.output_sampling_rate,
