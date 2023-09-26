@@ -1,7 +1,7 @@
 import math
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union
 
 from everyvoice.config.preprocessing_config import PreprocessingConfig
 from everyvoice.config.shared_types import (
@@ -9,14 +9,23 @@ from everyvoice.config.shared_types import (
     AdamWOptimizer,
     BaseTrainingConfig,
     ConfigModel,
+    PartialLoadConfig,
     RMSOptimizer,
+    _init_context_var,
+    init_context,
 )
 from everyvoice.config.utils import PossiblySerializedCallable, load_partials
 from everyvoice.utils import (
     load_config_from_json_or_yaml_path,
     original_hifigan_leaky_relu,
 )
-from pydantic import Field, FilePath, model_validator
+from pydantic import (
+        Field,
+        FilePath,
+        ValidationInfo,
+        field_validator,
+        model_validator,
+        )
 
 
 class HiFiGANResblock(Enum):
@@ -71,7 +80,7 @@ class HiFiGANTrainingConfig(BaseTrainingConfig):
     finetune: bool = False
 
 
-class HiFiGANConfig(ConfigModel):
+class HiFiGANConfig(PartialLoadConfig):
     model: HiFiGANModelConfig = Field(default_factory=HiFiGANModelConfig)
     path_to_model_config_file: Optional[FilePath] = None
     training: HiFiGANTrainingConfig = Field(default_factory=HiFiGANTrainingConfig)
@@ -79,15 +88,22 @@ class HiFiGANConfig(ConfigModel):
     preprocessing: PreprocessingConfig = Field(default_factory=PreprocessingConfig)
     path_to_preprocessing_config_file: Optional[FilePath] = None
 
-    @model_validator(mode="before")
-    def load_partials(self):
-        return load_partials(self, ["model", "training", "preprocessing"])
+    @model_validator(mode="before")   # type: ignore
+    def load_partials(self, info: ValidationInfo):
+        config_path = info.context.get("config_path", None) if info.context is not None else None
+        return load_partials(
+            self,
+            ("model", "training", "preprocessing"),
+            config_path=config_path,
+        )
 
     @staticmethod
     def load_config_from_path(path: Path) -> "HiFiGANConfig":
         """Load a config from a path"""
         config = load_config_from_json_or_yaml_path(path)
-        return HiFiGANConfig(**config)
+        with init_context({'config_path': path}):
+            config = HiFiGANConfig(**config)
+        return config
 
     @model_validator(mode="after")
     def check_upsample_rate_consistency(self) -> "HiFiGANConfig":
