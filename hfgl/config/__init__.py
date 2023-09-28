@@ -1,7 +1,7 @@
 import math
 from enum import Enum
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import List, Optional, Union
 
 from everyvoice.config.preprocessing_config import PreprocessingConfig
 from everyvoice.config.shared_types import (
@@ -11,7 +11,6 @@ from everyvoice.config.shared_types import (
     ConfigModel,
     PartialLoadConfig,
     RMSOptimizer,
-    _init_context_var,
     init_context,
 )
 from everyvoice.config.utils import PossiblySerializedCallable, load_partials
@@ -19,13 +18,7 @@ from everyvoice.utils import (
     load_config_from_json_or_yaml_path,
     original_hifigan_leaky_relu,
 )
-from pydantic import (
-        Field,
-        FilePath,
-        ValidationInfo,
-        field_validator,
-        model_validator,
-        )
+from pydantic import Field, FilePath, ValidationInfo, model_validator
 
 
 class HiFiGANResblock(Enum):
@@ -88,9 +81,11 @@ class HiFiGANConfig(PartialLoadConfig):
     preprocessing: PreprocessingConfig = Field(default_factory=PreprocessingConfig)
     path_to_preprocessing_config_file: Optional[FilePath] = None
 
-    @model_validator(mode="before")   # type: ignore
+    @model_validator(mode="before")  # type: ignore
     def load_partials(self, info: ValidationInfo):
-        config_path = info.context.get("config_path", None) if info.context is not None else None
+        config_path = (
+            info.context.get("config_path", None) if info.context is not None else None
+        )
         return load_partials(
             self,
             ("model", "training", "preprocessing"),
@@ -101,7 +96,7 @@ class HiFiGANConfig(PartialLoadConfig):
     def load_config_from_path(path: Path) -> "HiFiGANConfig":
         """Load a config from a path"""
         config = load_config_from_json_or_yaml_path(path)
-        with init_context({'config_path': path}):
+        with init_context({"config_path": path}):
             config = HiFiGANConfig(**config)
         return config
 
