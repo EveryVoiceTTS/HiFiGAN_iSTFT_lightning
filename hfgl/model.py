@@ -262,7 +262,8 @@ class Generator(torch.nn.Module):
                         // (2 ** (i + 1)),
                         kernel_size=k,
                         stride=u,
-                        padding=(k - u) // 2,
+                        padding=(u // 2 + u % 2),
+                        output_padding=u % 2,
                         transpose=True,
                         weight_norm=True,
                     )
@@ -277,7 +278,8 @@ class Generator(torch.nn.Module):
                             // (2 ** (i + 1)),  # out
                             k,  # kernel
                             u,  # stride
-                            padding=(k - u) // 2,
+                            padding=(u // 2 + u % 2),
+                            output_padding=u % 2,
                         )
                     )
                 )
@@ -537,6 +539,7 @@ class MultiScaleDiscriminator(torch.nn.Module):
 class HiFiGAN(pl.LightningModule):
     def __init__(self, config: VocoderConfig):
         super().__init__()
+        self.automatic_optimization = False
         self.config = config
         self.mpd = MultiPeriodDiscriminator(config)
         self.msd = MultiScaleDiscriminator(config)
@@ -708,80 +711,36 @@ class HiFiGAN(pl.LightningModule):
         self.log("training/gradient_penalty", gradient_penalty)
         return gradient_penalty
 
-    def training_step(self, batch, batch_idx, optimizer_idx):
+    def training_step(self, batch, batch_idx):
         x, y, _, y_mel = batch
         y = y.unsqueeze(1)
         # x.size() & y_mel.size() = [batch_size, n_mels=80, n_frames=32]
         # y.size() = [batch_size, segment_size=8192]
-        # train generator
-        if optimizer_idx == 0:
-            # generate waveform
-            if self.config.model.istft_layer:
-                mag, phase = self(x)
-                self.generated_wav = self.inverse_spectral_transform(
-                    mag * torch.exp(phase * 1j)
-                ).unsqueeze(-2)
-            else:
-                self.generated_wav = self(x)
-            # create mel
-            generated_mel_spec = dynamic_range_compression_torch(
-                self.spectral_transform(self.generated_wav).squeeze(1)[:, :, 1:]
-            )
-            # calculate loss
-            _, y_df_hat_g, fmap_f_r, fmap_f_g = self.mpd(y, self.generated_wav)
-            _, y_ds_hat_g, fmap_s_r, fmap_s_g = self.msd(y, self.generated_wav)
-            loss_fm_f = self.feature_loss(fmap_f_r, fmap_f_g)
-            loss_fm_s = self.feature_loss(fmap_s_r, fmap_s_g)
-            # loss_gen_f = -torch.mean(y_df_hat_g)
-            # loss_gen_s = -torch.mean(y_ds_hat_g)
-            loss_gen_f, _ = self.generator_loss(
-                y_df_hat_g, gp=self.use_gradient_penalty
-            )
-            loss_gen_s, _ = self.generator_loss(
-                y_ds_hat_g, gp=self.use_gradient_penalty
-            )
-            self.log("training/gen/loss_fmap_f", loss_fm_f, prog_bar=False)
-            self.log("training/gen/loss_fmap_s", loss_fm_s, prog_bar=False)
-            self.log("training/gen/loss_gen_f", loss_gen_f, prog_bar=False)
-            self.log("training/gen/loss_gen_s", loss_gen_s, prog_bar=False)
-            loss_mel = F.l1_loss(y_mel, generated_mel_spec) * 45
-            gen_loss_total = loss_gen_s + loss_gen_f + loss_fm_s + loss_fm_f + loss_mel
-            # log generator loss
-            self.log("training/gen/gen_loss_total", gen_loss_total, prog_bar=False)
-            self.log("training/gen/mel_spec_error", loss_mel / 45, prog_bar=False)
-            return gen_loss_total
+        optim_g, optim_d = self.optimizers()
+        scheduler_g, scheduler_d = self.lr_schedulers()
+        # generate waveform
+        if self.config.model.istft_layer:
+            mag, phase = self(x)
+            generated_wav = self.inverse_spectral_transform(
+                mag * torch.exp(phase * 1j)
+            ).unsqueeze(-2)
+        else:
+            generated_wav = self(x)
 
+        # create mel
+        generated_mel_spec = dynamic_range_compression_torch(
+            self.spectral_transform(generated_wav).squeeze(1)[:, :, 1:]
+        )
         # train discriminators
-        if (
-            self.global_step >= self.config.training.generator_warmup_steps
-            and optimizer_idx == 1
-        ):
-            if self.config.model.istft_layer:
-                mag, phase = self(x)
-                y_g_hat = (
-                    self.inverse_spectral_transform(mag * torch.exp(phase * 1j))
-                    .unsqueeze(-2)
-                    .detach()
-                )
-            else:
-                y_g_hat = self(x).detach()
+        if self.global_step >= self.config.training.generator_warmup_steps:
+            optim_d.zero_grad()
             # MPD
-            y_df_hat_r, y_df_hat_g, _, _ = self.mpd(y, y_g_hat)
-            if self.use_gradient_penalty:
-                gp_f = self.compute_gradient_penalty(y.data, y_g_hat.data, self.mpd)
-            else:
-                gp_f = None
-            loss_disc_f, _, _ = self.discriminator_loss(y_df_hat_r, y_df_hat_g, gp=gp_f)
+            y_df_hat_r, y_df_hat_g, _, _ = self.mpd(y, generated_wav.detach())
+            loss_disc_f, _, _ = self.discriminator_loss(y_df_hat_r, y_df_hat_g, gp=None)
             self.log("training/disc/mpd_loss", loss_disc_f, prog_bar=False)
             # MSD
-            y_ds_hat_r, y_ds_hat_g, _, _ = self.msd(y, y_g_hat)
-            # gp_s = self.compute_gradient_penalty(y_ds_hat_r, y_ds_hat_g)
-            # loss_disc_s = -torch.mean(y_ds_hat_r) + torch.mean(y_ds_hat_g) + 10 * gp_s
-            if self.use_gradient_penalty:
-                gp_s = self.compute_gradient_penalty(y.data, y_g_hat.data, self.msd)
-            else:
-                gp_s = None
-            loss_disc_s, _, _ = self.discriminator_loss(y_ds_hat_r, y_ds_hat_g, gp=gp_s)
+            y_ds_hat_r, y_ds_hat_g, _, _ = self.msd(y, generated_wav.detach())
+            loss_disc_s, _, _ = self.discriminator_loss(y_ds_hat_r, y_ds_hat_g, gp=None)
             self.log("training/disc/msd_loss", loss_disc_s, prog_bar=False)
             # WGAN
             if self.use_wgan:
@@ -797,9 +756,49 @@ class HiFiGAN(pl.LightningModule):
                     )
             # calculate loss
             disc_loss_total = loss_disc_s + loss_disc_f
+            # manual optimization because Pytorch Lightning 2.0+ doesn't handle automatic optimization for multiple optimizers
+            # use .backward for now, but maybe switch to self.manual_backward() in the future: https://github.com/Lightning-AI/lightning/issues/18740
+            # self.manual_backward(disc_loss_total)
+            disc_loss_total.backward()
+            # clip gradients
+            self.clip_gradients(
+                optim_d, gradient_clip_val=1.0, gradient_clip_algorithm="norm"
+            )
+            optim_d.step()
+            scheduler_d.step()
             # log discriminator loss
             self.log("training/disc/d_loss_total", disc_loss_total, prog_bar=False)
-            return disc_loss_total
+
+        # train generator
+        optim_g.zero_grad()
+        # calculate loss
+        _, y_df_hat_g, fmap_f_r, fmap_f_g = self.mpd(y, generated_wav)
+        _, y_ds_hat_g, fmap_s_r, fmap_s_g = self.msd(y, generated_wav)
+        loss_fm_f = self.feature_loss(fmap_f_r, fmap_f_g)
+        loss_fm_s = self.feature_loss(fmap_s_r, fmap_s_g)
+        # loss_gen_f = -torch.mean(y_df_hat_g)
+        # loss_gen_s = -torch.mean(y_ds_hat_g)
+        loss_gen_f, _ = self.generator_loss(y_df_hat_g, gp=self.use_gradient_penalty)
+        loss_gen_s, _ = self.generator_loss(y_ds_hat_g, gp=self.use_gradient_penalty)
+        self.log("training/gen/loss_fmap_f", loss_fm_f, prog_bar=False)
+        self.log("training/gen/loss_fmap_s", loss_fm_s, prog_bar=False)
+        self.log("training/gen/loss_gen_f", loss_gen_f, prog_bar=False)
+        self.log("training/gen/loss_gen_s", loss_gen_s, prog_bar=False)
+        loss_mel = F.l1_loss(y_mel, generated_mel_spec) * 45
+        gen_loss_total = loss_gen_s + loss_gen_f + loss_fm_s + loss_fm_f + loss_mel
+        # manual optimization because Pytorch Lightning 2.0+ doesn't handle automatic optimization for multiple optimizers
+        # use .backward for now, but maybe switch to self.manual_backward() in the future: https://github.com/Lightning-AI/lightning/issues/18740
+        # self.manual_backward(gen_loss_total)
+        gen_loss_total.backward()
+        # clip gradients
+        self.clip_gradients(
+            optim_d, gradient_clip_val=1.0, gradient_clip_algorithm="norm"
+        )
+        optim_g.step()
+        scheduler_g.step()
+        # log generator loss
+        self.log("training/gen/gen_loss_total", gen_loss_total, prog_bar=False)
+        self.log("training/gen/mel_spec_error", loss_mel / 45, prog_bar=False)
 
     def validation_step(self, batch, batch_idx):
         x, y, bn, y_mel = batch
@@ -809,16 +808,17 @@ class HiFiGAN(pl.LightningModule):
         # generate waveform
         if self.config.model.istft_layer:
             mag, phase = self(x)
-            self.generated_wav = self.inverse_spectral_transform(
+            generated_wav = self.inverse_spectral_transform(
                 mag * torch.exp(phase * 1j)
             ).unsqueeze(-2)
         else:
-            self.generated_wav = self(x)
+            generated_wav = self(x)
         # create mel
         generated_mel_spec = dynamic_range_compression_torch(
-            self.spectral_transform(self.generated_wav).squeeze(1)[:, :, 1:]
+            self.spectral_transform(generated_wav).squeeze(1)[:, :, 1:]
         )
-        val_err_tot = F.l1_loss(y_mel, generated_mel_spec).item()
+        # Since we are not using fixed-size segments, sometimes the prediction is off by one frame when doing super resolution/upsampling
+        val_err_tot = F.l1_loss(y_mel, generated_mel_spec[:, :, : y_mel.size(2)]).item()
         # # Below is taken from HiFiGAN
         if self.global_step == 0:
             # Log ground truth audio and spec
@@ -837,13 +837,13 @@ class HiFiGAN(pl.LightningModule):
         if batch_idx == 0:
             self.logger.experiment.add_audio(
                 f"generated/y_hat_{bn[0]}",
-                self.generated_wav[0],
+                generated_wav[0],
                 current_step,
                 self.audio_config.output_sampling_rate,
             )
 
             y_hat_spec = dynamic_range_compression_torch(
-                self.spectral_transform(self.generated_wav[0]).squeeze(1)[:, :, 1:]
+                self.spectral_transform(generated_wav[0]).squeeze(1)[:, :, 1:]
             )
             self.logger.experiment.add_figure(
                 f"generated/y_hat_spec_{bn[0]}",
@@ -852,5 +852,5 @@ class HiFiGAN(pl.LightningModule):
             )
 
         self.log(
-            "validation/mel_spec_error", val_err_tot, prog_bar=False, sync_dist=True
+            "validation/mel_spec_error", val_err_tot, prog_bar=True, sync_dist=True
         )
