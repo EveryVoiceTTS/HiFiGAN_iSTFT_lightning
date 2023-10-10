@@ -540,6 +540,10 @@ class HiFiGAN(pl.LightningModule):
     def __init__(self, config: VocoderConfig):
         super().__init__()
         self.automatic_optimization = False
+        # Because we serialize the configurations when saving checkpoints,
+        # sometimes what is passed is actually just a dict.
+        if not isinstance(config, VocoderConfig):
+            config = VocoderConfig(**config)
         self.config = config
         self.mpd = MultiPeriodDiscriminator(config)
         self.msd = MultiScaleDiscriminator(config)
@@ -586,6 +590,28 @@ class HiFiGAN(pl.LightningModule):
 
     def forward(self, x):
         return self.generator(x)
+
+    def on_load_checkpoint(self, checkpoint):
+        """Deserialize the checkpoint hyperparameters.
+        Note, this shouldn't fail on different versions of pydantic anymore,
+        but it will fail on breaking changes to the config. We should catch those exceptions
+        and handle them appropriately."""
+        self.config = VocoderConfig(**checkpoint["hyper_parameters"]["config"])
+
+    def on_save_checkpoint(self, checkpoint):
+        """Serialize the checkpoint hyperparameters"""
+        checkpoint["hyper_parameters"]["config"] = self.config.model_dump(
+            exclude={
+                "path_to_preprocessing_config_file": True,
+                "path_to_text_config_file": True,
+                "path_to_audio_config_file": True,
+                "path_to_training_config_file": True,
+                "path_to_model_config_file": True,
+                "path_to_aligner_config_file": True,
+                "path_to_vocoder_config_file": True,
+                "path_to_feature_prediction_config_file": True,
+            }
+        )
 
     def configure_optimizers(self):
         if self.config.training.optimizer.name == "adamw":
