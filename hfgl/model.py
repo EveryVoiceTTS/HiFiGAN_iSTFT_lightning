@@ -765,7 +765,9 @@ class HiFiGAN(pl.LightningModule):
                 optim_d, gradient_clip_val=1.0, gradient_clip_algorithm="norm"
             )
             optim_d.step()
-            scheduler_d.step()
+            # step in the scheduler every epoch
+            if self.trainer.is_last_batch:
+                scheduler_d.step()
             # log discriminator loss
             self.log("training/disc/d_loss_total", disc_loss_total, prog_bar=False)
 
@@ -795,7 +797,9 @@ class HiFiGAN(pl.LightningModule):
             optim_d, gradient_clip_val=1.0, gradient_clip_algorithm="norm"
         )
         optim_g.step()
-        scheduler_g.step()
+        # step in the scheduler every epoch
+        if self.trainer.is_last_batch:
+            scheduler_g.step()
         # log generator loss
         self.log("training/gen/gen_loss_total", gen_loss_total, prog_bar=False)
         self.log("training/gen/mel_spec_error", loss_mel / 45, prog_bar=False)
