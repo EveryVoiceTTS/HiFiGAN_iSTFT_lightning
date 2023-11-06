@@ -56,6 +56,8 @@ def train(**kwargs):
         model=HiFiGAN,
         data_module=HiFiGANDataModule,
         monitor="validation/mel_spec_error",
+        # We can't do this automatically with Lightning, so we do it manually in model.py
+        gradient_clip_val=None,
         **kwargs,
     )
 

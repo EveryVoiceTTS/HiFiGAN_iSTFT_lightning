@@ -55,7 +55,7 @@ def get_all_segments(
     # segment size is relative to output_sampling_rate, so we use the output_hop_size, but frames_per_seg is in frequency domain, so invariant to x and y_mel
     # other implementations just resample y and take the mel spectrogram of that, but this solution allows for segmenting predicted mel spectrograms from the acoustic feature prediction network too
     frames_per_seg = math.ceil(segment_size / output_hop_size)
-    if y.size(0) >= segment_size:
+    if y.size(0) > segment_size:
         max_spec_start = x.size(1) - frames_per_seg - 1
         spec_start = random.randint(0, max_spec_start)
         x = x[:, spec_start : spec_start + frames_per_seg]
