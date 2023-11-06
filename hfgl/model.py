@@ -263,8 +263,7 @@ class Generator(torch.nn.Module):
                         // (2 ** (i + 1)),
                         kernel_size=k,
                         stride=u,
-                        padding=(u // 2 + u % 2),
-                        output_padding=u % 2,
+                        padding=(k - u) // 2,
                         transpose=True,
                         weight_norm=True,
                     )
@@ -279,8 +278,7 @@ class Generator(torch.nn.Module):
                             // (2 ** (i + 1)),  # out
                             k,  # kernel
                             u,  # stride
-                            padding=(u // 2 + u % 2),
-                            output_padding=u % 2,
+                            padding=(k - u) // 2,
                         )
                     )
                 )
