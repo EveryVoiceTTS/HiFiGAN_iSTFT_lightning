@@ -25,9 +25,9 @@ class SpecDataset(Dataset):
         self.sampling_rate_change = (
             self.output_sampling_rate // self.input_sampling_rate
         )
-        self.input_hop_size = self.config.preprocessing.audio.fft_hop_frames
+        self.input_hop_size = self.config.preprocessing.audio.fft_hop_size
         self.output_hop_size = (
-            self.config.preprocessing.audio.fft_hop_frames * self.sampling_rate_change
+            self.config.preprocessing.audio.fft_hop_size * self.sampling_rate_change
         )
 
     def __getitem__(self, index):

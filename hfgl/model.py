@@ -563,8 +563,8 @@ class HiFiGAN(pl.LightningModule):
         self.spectral_transform = get_spectral_transform(
             self.audio_config.spec_type,
             self.audio_config.n_fft * self.sampling_rate_change,
-            self.audio_config.fft_window_frames * self.sampling_rate_change,
-            self.audio_config.fft_hop_frames * self.sampling_rate_change,
+            self.audio_config.fft_window_size * self.sampling_rate_change,
+            self.audio_config.fft_hop_size * self.sampling_rate_change,
             f_min=self.audio_config.f_min,
             f_max=self.audio_config.f_max,
             sample_rate=self.audio_config.output_sampling_rate,

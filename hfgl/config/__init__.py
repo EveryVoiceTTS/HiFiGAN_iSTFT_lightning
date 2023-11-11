@@ -108,7 +108,7 @@ class HiFiGANConfig(PartialLoadConfig):
         sampling_rate = preprocessing_config.audio.input_sampling_rate
         upsampled_sampling_rate = preprocessing_config.audio.output_sampling_rate
         upsample_rate = upsampled_sampling_rate // sampling_rate
-        upsampled_hop_size = upsample_rate * preprocessing_config.audio.fft_hop_frames
+        upsampled_hop_size = upsample_rate * preprocessing_config.audio.fft_hop_size
         upsample_rate_product = math.prod(model_config.upsample_rates)
         # check that same number of kernels and kernel sizes exist
         if len(model_config.upsample_kernel_sizes) != len(model_config.upsample_rates):
