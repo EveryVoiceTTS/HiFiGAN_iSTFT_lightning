@@ -595,7 +595,7 @@ class HiFiGAN(pl.LightningModule):
         Note, this shouldn't fail on different versions of pydantic anymore,
         but it will fail on breaking changes to the config. We should catch those exceptions
         and handle them appropriately."""
-        self.config = VocoderConfig(**checkpoint["hyper_parameters"]["config"])
+        self.config = checkpoint["hyper_parameters"]["config"]
 
     def on_save_checkpoint(self, checkpoint):
         """Serialize the checkpoint hyperparameters"""
