@@ -2,6 +2,8 @@ from pathlib import Path
 
 import torch
 from everyvoice.dataloader import BaseDataModule
+from everyvoice.text.lookups import LookupTables
+from everyvoice.model.feature_prediction.FastSpeech2_lightning.fs2.model import FastSpeech2
 from everyvoice.model.vocoder.config import VocoderConfig
 from everyvoice.utils import check_dataset_size
 from torch.utils.data import Dataset
@@ -11,14 +13,15 @@ from .utils import get_all_segments
 
 class SpecDataset(Dataset):
     def __init__(
-        self, audio_files, config: VocoderConfig, use_segments=False, finetune=False
+        self, audio_files, config: VocoderConfig, use_segments=False, checkpoint=None, finetune=False
     ):
         self.config = config
         self.sep = config.preprocessing.value_separator
         self.use_segments = use_segments
         self.audio_files = audio_files
         self.preprocessed_dir = Path(self.config.preprocessing.save_dir)
-        self.finetune = self.config.training.finetune
+        self.finetune = self.config.training.finetune or finetune
+        self.checkpoint = checkpoint
         self.segment_size = self.config.preprocessing.audio.vocoder_segment_size
         self.output_sampling_rate = self.config.preprocessing.audio.output_sampling_rate
         self.input_sampling_rate = self.config.preprocessing.audio.input_sampling_rate
@@ -64,19 +67,56 @@ class SpecDataset(Dataset):
             )
         )  # [mel_bins, frames]
         if self.finetune:
-            # If finetuning, use the synthesized spectral features
-            x = torch.load(
+            if self.checkpoint:
+                text = torch.load(self.preprocessed_dir / 'text' / self.sep.join(
+                    [
+                        item["basename"],
+                        speaker,
+                        language,
+                        "text.pt",
+                    ]
+                ))
+                model = FastSpeech2.load_from_checkpoint(self.checkpoint)
+                model.eval()
+                model.to(text.device)
+                lookup = LookupTables(model.config)
+                src_lens = torch.LongTensor([text.size(0)])
+                mel = torch.load(
                 self.preprocessed_dir
-                / "synthesized_spec"
+                / "spec"
                 / self.sep.join(
                     [
                         item["basename"],
                         speaker,
                         language,
-                        f"spec-pred-{self.input_sampling_rate}-{self.config.preprocessing.audio.spec_type}.pt",
+                        f"spec-{self.input_sampling_rate}-{self.config.preprocessing.audio.spec_type}.pt",
                     ]
                 )
-            )
+            )  # [mel_bins, frames]
+                x_input = {"text": text, 
+                            "src_lens": src_lens,
+                            "max_src_len": text.size(0),
+                            "speaker_id": torch.LongTensor([lookup.speaker2id[speaker]]),
+                            "language_id": torch.LongTensor([lookup.lang2id[language]]),
+                            "mel_lens": torch.LongTensor([mel.size(1)]),
+                            "max_mel_len": mel.size(1)}
+                with torch.no_grad():
+                    x = model.forward(x_input, inference=True)[model.output_key].squeeze().transpose(0,1)
+                
+            else:
+                # If finetuning, use the synthesized spectral features
+                x = torch.load(
+                    self.preprocessed_dir
+                    / "synthesized_spec"
+                    / self.sep.join(
+                        [
+                            item["basename"],
+                            speaker,
+                            language,
+                            f"spec-pred-{self.input_sampling_rate}-{self.config.preprocessing.audio.spec_type}.pt",
+                        ]
+                    )
+                )
         else:
             x = torch.load(
                 self.preprocessed_dir
@@ -133,13 +173,3 @@ class HiFiGANDataModule(BaseDataModule):
         # save it to disk
         torch.save(self.train_dataset, self.train_path)
         torch.save(self.val_dataset, self.val_path)
-
-
-class HiFiGANFineTuneDataModule(BaseDataModule):
-    def __init__(self, config: VocoderConfig):
-        super().__init__(config=config)
-        self.use_weighted_sampler = config.training.use_weighted_sampler
-        self.batch_size = config.training.batch_size
-
-    def load_dataset(self):
-        self.dataset = SpecDataset(config=self.config, finetune=True)

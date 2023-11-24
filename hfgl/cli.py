@@ -7,6 +7,8 @@ from everyvoice.base_cli.interfaces import (
     preprocess_base_command_interface,
     train_base_command_interface,
 )
+from everyvoice.model.vocoder.config import VocoderConfig
+from everyvoice.utils import check_dataset_size
 from loguru import logger
 from merge_args import merge_args
 
@@ -55,6 +57,53 @@ def train(**kwargs):
         model_config=HiFiGANConfig,
         model=HiFiGAN,
         data_module=HiFiGANDataModule,
+        monitor="validation/mel_spec_error",
+        # We can't do this automatically with Lightning, so we do it manually in model.py
+        gradient_clip_val=None,
+        **kwargs,
+    )
+
+@app.command()
+@merge_args(train_base_command_interface)
+def match(checkpoint: Path = typer.Argument(
+        ...,
+        exists=True,
+        dir_okay=False,
+        file_okay=True,
+        help="The path to a pre-trained text-to-spec model to match",
+    ),**kwargs):
+    from everyvoice.base_cli.helpers import train_base_command
+    import torch
+    from .dataset import HiFiGANDataModule, SpecDataset
+    from .model import HiFiGAN
+
+    class HiFiGANFineTuneDataModuleWithCheckpoint(HiFiGANDataModule):
+        def __init__(self, config: VocoderConfig):
+            super().__init__(config=config)
+            self.use_weighted_sampler = config.training.use_weighted_sampler
+            self.batch_size = config.training.batch_size
+            self.checkpoint = checkpoint
+
+        def prepare_data(self):
+            self.load_dataset()
+            train_samples = len(self.train_dataset)
+            val_samples = len(self.val_dataset)
+            check_dataset_size(self.batch_size, train_samples, "training")
+            check_dataset_size(self.batch_size, val_samples, "validation")
+            self.train_dataset = SpecDataset(
+                self.train_dataset, self.config, use_segments=True, checkpoint=checkpoint, finetune=True
+            )
+            self.val_dataset = SpecDataset(
+                self.val_dataset, self.config, use_segments=False, checkpoint=checkpoint, finetune=True
+            )
+            # save it to disk
+            torch.save(self.train_dataset, self.train_path)
+            torch.save(self.val_dataset, self.val_path)
+
+    train_base_command(
+        model_config=HiFiGANConfig,
+        model=HiFiGAN,
+        data_module=HiFiGANFineTuneDataModuleWithCheckpoint,
         monitor="validation/mel_spec_error",
         # We can't do this automatically with Lightning, so we do it manually in model.py
         gradient_clip_val=None,
