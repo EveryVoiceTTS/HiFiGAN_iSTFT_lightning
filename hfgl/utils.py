@@ -6,6 +6,7 @@ import numpy as np
 import torch
 from everyvoice.utils.heavy import get_spectral_transform
 
+from .config import HiFiGANConfig
 from .model import HiFiGAN
 
 
@@ -19,6 +20,10 @@ def synthesize_data(data: torch.Tensor, generator_ckpt: dict) -> Tuple[np.ndarra
         Tuple[np.ndarray, int]: a 1-D array of the wav file and the sampling rate
     """
     config = generator_ckpt["hyper_parameters"]["config"]
+    if isinstance(generator_ckpt['hyper_parameters']['config'], dict):
+        config: HiFiGANConfig = HiFiGANConfig(**generator_ckpt['hyper_parameters']['config'])
+    else:
+        config: HiFiGANConfig = generator_ckpt['hyper_parameters']["config"]  # type: ignore
     model = HiFiGAN(config).to(data.device)
     model.load_state_dict(generator_ckpt["state_dict"])
     model.generator.eval()
