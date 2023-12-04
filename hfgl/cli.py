@@ -10,8 +10,6 @@ from everyvoice.base_cli.interfaces import (
 from loguru import logger
 from merge_args import merge_args
 
-from .config import HiFiGANConfig
-
 app = typer.Typer(
     pretty_exceptions_show_locals=False,
     help="A PyTorch Lightning implementation of the HiFiGAN and iSTFT-Net vocoders",
@@ -36,6 +34,8 @@ def preprocess(
 ):
     from everyvoice.base_cli.helpers import preprocess_base_command
 
+    from .config import HiFiGANConfig
+
     preprocess_base_command(
         model_config=HiFiGANConfig,
         steps=[step.name for step in steps],
@@ -48,6 +48,7 @@ def preprocess(
 def train(**kwargs):
     from everyvoice.base_cli.helpers import train_base_command
 
+    from .config import HiFiGANConfig
     from .dataset import HiFiGANDataModule
     from .model import HiFiGAN
 
