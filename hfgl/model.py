@@ -2,12 +2,10 @@ import itertools
 import math
 from typing import Dict, Union
 
-import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from everyvoice.model.utils import create_depthwise_separable_convolution
 from everyvoice.model.vocoder.config import VocoderConfig
 from everyvoice.utils import plot_spectrogram
 from everyvoice.utils.heavy import (
@@ -39,74 +37,40 @@ class ResBlock1(torch.nn.Module):
         channels,
         kernel_size=3,
         dilation=(1, 3, 5),
-        depthwise=False,
     ):
         super(ResBlock1, self).__init__()
         self.config = config
-        self.depthwise = depthwise
-        if self.depthwise:
-            self.convs1 = nn.ModuleList(
-                [
-                    create_depthwise_separable_convolution(
-                        in_channels=channels,
-                        out_channels=channels,
-                        kernel_size=kernel_size,
-                        stride=1,
+        self.convs1 = nn.ModuleList(
+            [
+                weight_norm(
+                    Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
                         dilation=x,
                         padding=get_padding(kernel_size, x),
-                        weight_norm=True,
                     )
-                    for x in dilation
-                ]
-            )
-        else:
-            self.convs1 = nn.ModuleList(
-                [
-                    weight_norm(
-                        Conv1d(
-                            channels,
-                            channels,
-                            kernel_size,
-                            1,
-                            dilation=x,
-                            padding=get_padding(kernel_size, x),
-                        )
-                    )
-                    for x in dilation
-                ]
-            )
+                )
+                for x in dilation
+            ]
+        )
         self.convs1.apply(init_weights)
-        if self.depthwise:
-            self.convs2 = nn.ModuleList(
-                [
-                    create_depthwise_separable_convolution(
-                        in_channels=channels,
-                        out_channels=channels,
-                        kernel_size=kernel_size,
-                        stride=1,
+        self.convs2 = nn.ModuleList(
+            [
+                weight_norm(
+                    Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
                         dilation=1,
                         padding=get_padding(kernel_size, 1),
-                        weight_norm=True,
                     )
-                    for _ in dilation
-                ]
-            )
-        else:
-            self.convs2 = nn.ModuleList(
-                [
-                    weight_norm(
-                        Conv1d(
-                            channels,
-                            channels,
-                            kernel_size,
-                            1,
-                            dilation=1,
-                            padding=get_padding(kernel_size, 1),
-                        )
-                    )
-                    for _ in dilation
-                ]
-            )
+                )
+                for _ in dilation
+            ]
+        )
         self.convs2.apply(init_weights)
 
     def forward(self, x):
@@ -140,59 +104,33 @@ class ResBlock2(torch.nn.Module):
         channels,
         kernel_size=3,
         dilation=(1, 3),
-        depthwise=False,
     ):
         super(ResBlock2, self).__init__()
         self.config = config
-        self.depthwise = depthwise
-        if self.depthwise:
-            self.convs = nn.ModuleList(
-                [
-                    create_depthwise_separable_convolution(
-                        in_channels=channels,
-                        out_channels=channels,
-                        kernel_size=kernel_size,
-                        stride=1,
+        self.convs = nn.ModuleList(
+            [
+                weight_norm(
+                    Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
                         dilation=dilation[0],
                         padding=get_padding(kernel_size, dilation[0]),
-                        weight_norm=True,
-                    ),
-                    create_depthwise_separable_convolution(
-                        in_channels=channels,
-                        out_channels=channels,
-                        kernel_size=kernel_size,
-                        stride=1,
+                    )
+                ),
+                weight_norm(
+                    Conv1d(
+                        channels,
+                        channels,
+                        kernel_size,
+                        1,
                         dilation=dilation[1],
                         padding=get_padding(kernel_size, dilation[1]),
-                        weight_norm=True,
-                    ),
-                ]
-            )
-        else:
-            self.convs = nn.ModuleList(
-                [
-                    weight_norm(
-                        Conv1d(
-                            channels,
-                            channels,
-                            kernel_size,
-                            1,
-                            dilation=dilation[0],
-                            padding=get_padding(kernel_size, dilation[0]),
-                        )
-                    ),
-                    weight_norm(
-                        Conv1d(
-                            channels,
-                            channels,
-                            kernel_size,
-                            1,
-                            dilation=dilation[1],
-                            padding=get_padding(kernel_size, dilation[1]),
-                        )
-                    ),
-                ]
-            )
+                    )
+                ),
+            ]
+        )
         self.convs.apply(init_weights)
 
     def forward(self, x):
@@ -215,7 +153,6 @@ class Generator(torch.nn.Module):
     def __init__(self, config: VocoderConfig):
         super(Generator, self).__init__()
         self.config = config
-        self.depthwise = config.model.depthwise_separable_convolutions.generator
         self.audio_config = config.preprocessing.audio
         self.sampling_rate_change = (
             self.audio_config.output_sampling_rate
@@ -224,26 +161,15 @@ class Generator(torch.nn.Module):
         self.model_vocoder_config = config.model
         self.num_kernels = len(self.model_vocoder_config.resblock_kernel_sizes)
         self.num_upsamples = len(self.model_vocoder_config.upsample_rates)
-        self.conv_pre = (
-            create_depthwise_separable_convolution(
-                in_channels=self.audio_config.n_mels,
-                out_channels=self.model_vocoder_config.upsample_initial_channel,
-                kernel_size=7,
-                stride=1,
+        self.conv_pre = weight_norm(
+            Conv1d(
+                self.audio_config.n_mels,
+                self.model_vocoder_config.upsample_initial_channel,
+                7,
+                1,
                 padding=3,
-                weight_norm=True,
             )
-            if self.depthwise
-            else weight_norm(
-                Conv1d(
-                    self.audio_config.n_mels,
-                    self.model_vocoder_config.upsample_initial_channel,
-                    7,
-                    1,
-                    padding=3,
-                )
-            )
-        )  # in  # out  # kernel_size  # stride
+        )
 
         resblock = ResBlock1 if self.model_vocoder_config.resblock == "1" else ResBlock2
 
@@ -255,34 +181,19 @@ class Generator(torch.nn.Module):
             )
         ):
             # TODO: add sensible upsampling layer
-            if self.depthwise:
-                self.ups.append(
-                    create_depthwise_separable_convolution(
-                        in_channels=self.model_vocoder_config.upsample_initial_channel
-                        // (2**i),
-                        out_channels=self.model_vocoder_config.upsample_initial_channel
-                        // (2 ** (i + 1)),
-                        kernel_size=k,
-                        stride=u,
+            self.ups.append(
+                weight_norm(
+                    ConvTranspose1d(
+                        self.model_vocoder_config.upsample_initial_channel
+                        // (2**i),  # in
+                        self.model_vocoder_config.upsample_initial_channel
+                        // (2 ** (i + 1)),  # out
+                        k,  # kernel
+                        u,  # stride
                         padding=(k - u) // 2,
-                        transpose=True,
-                        weight_norm=True,
                     )
                 )
-            else:
-                self.ups.append(
-                    weight_norm(
-                        ConvTranspose1d(
-                            self.model_vocoder_config.upsample_initial_channel
-                            // (2**i),  # in
-                            self.model_vocoder_config.upsample_initial_channel
-                            // (2 ** (i + 1)),  # out
-                            k,  # kernel
-                            u,  # stride
-                            padding=(k - u) // 2,
-                        )
-                    )
-                )
+            )
 
         self.resblocks = nn.ModuleList()
         for i in range(len(self.ups)):
@@ -291,9 +202,7 @@ class Generator(torch.nn.Module):
                 self.model_vocoder_config.resblock_kernel_sizes,
                 self.model_vocoder_config.resblock_dilation_sizes,
             ):
-                self.resblocks.append(
-                    resblock(self.config, ch, k, d, depthwise=self.depthwise)
-                )
+                self.resblocks.append(resblock(self.config, ch, k, d))
         if self.config.model.istft_layer:
             self.post_n_fft = (
                 self.audio_config.n_fft * self.sampling_rate_change
@@ -303,14 +212,9 @@ class Generator(torch.nn.Module):
         else:
             self.post_n_fft = conv_post_out_channels = 1
 
-        if self.depthwise:
-            self.conv_post = create_depthwise_separable_convolution(
-                ch, conv_post_out_channels, 7, 1, padding=3, weight_norm=True
-            )
-        else:
-            self.conv_post = weight_norm(
-                Conv1d(ch, conv_post_out_channels, 7, 1, padding=3)
-            )
+        self.conv_post = weight_norm(
+            Conv1d(ch, conv_post_out_channels, 7, 1, padding=3)
+        )
         self.ups.apply(init_weights)
         self.conv_post.apply(init_weights)
 
@@ -557,7 +461,6 @@ class HiFiGAN(pl.LightningModule):
             self.audio_config.output_sampling_rate
             // self.audio_config.input_sampling_rate
         )
-        self.use_gradient_penalty = self.config.training.gan_type == "wgan-gp"
         self.use_wgan = self.config.training.gan_type == "wgan"
         # We don't have to set the fft size and hop/window lengths as hyperparameters here, because we can just multiply by the upsampling rate
         self.spectral_transform = get_spectral_transform(
@@ -578,15 +481,6 @@ class HiFiGAN(pl.LightningModule):
                 self.generator.post_n_fft // 4,
             )
         # TODO: figure out multiple nodes/gpus: https://pytorch-lightning.readthedocs.io/en/1.4.0/advanced/multi_gpu.html
-        # TODO: figure out freezing
-        # if self.config.training.freeze_layers.get('all_layers', False):
-        #     self.freeze()
-        # if self.config.training.freeze_layers.get('mpd', False):
-        #     self.mpd.freeze()
-        # if self.config.training.freeze_layers.get('msd', False):
-        #     self.msd.freeze()
-        # if self.config.training.freeze_layers.get('generator', False):
-        #     self.generator.freeze()
 
     def forward(self, x):
         return self.generator(x)
@@ -647,7 +541,7 @@ class HiFiGAN(pl.LightningModule):
                 itertools.chain(self.msd.parameters(), self.mpd.parameters()),
                 lr=self.config.training.optimizer.learning_rate,
             )
-        if self.use_wgan or self.use_gradient_penalty:
+        if self.use_wgan:
             return (
                 {"optimizer": optim_g, "frequency": 1},
                 {"optimizer": optim_d, "frequency": 5},
@@ -671,78 +565,28 @@ class HiFiGAN(pl.LightningModule):
         self,
         disc_real_outputs,
         disc_generated_outputs,
-        gp=None,
-        lambda_gp=10,
     ):
         loss = 0
         r_losses = []
         g_losses = []
         for dr, dg in zip(disc_real_outputs, disc_generated_outputs):
-            if gp is not None:
-                r_loss = -torch.mean(dr)
-                g_loss = torch.mean(dg)
-                loss += r_loss + g_loss + lambda_gp * gp
-            else:
-                r_loss = torch.mean((1 - dr) ** 2)
-                g_loss = torch.mean(dg**2)
-                loss += r_loss + g_loss
+            r_loss = torch.mean((1 - dr) ** 2)
+            g_loss = torch.mean(dg**2)
+            loss += r_loss + g_loss
             r_losses.append(r_loss.item())
             g_losses.append(g_loss.item())
 
         return loss, r_losses, g_losses
 
-    def generator_loss(self, disc_outputs, gp=True):
+    def generator_loss(self, disc_outputs):
         g_loss = 0
         gen_losses = []
         for dg in disc_outputs:
-            if gp:
-                loss = -torch.mean(dg)
-            else:
-                loss = torch.mean((1 - dg) ** 2)
+            loss = torch.mean((1 - dg) ** 2)
             gen_losses.append(loss)
             g_loss += loss
 
         return (g_loss, gen_losses)
-
-    def compute_gradient_penalty(self, real_samples, fake_samples, discriminator):
-        """Calculates the gradient penalty loss for WGAN GP"""
-        # Random weight term for interpolation between real and fake samples
-        # real_samples.size() = (batch_size, 1, segment_size)
-        alpha = torch.Tensor(np.random.random((real_samples.size(0), 1, 1))).to(
-            self.device
-        )  # size = (batch_size, 1, 1)
-        # Get random interpolation between real and fake samples
-        interpolates = (
-            alpha * real_samples + ((1 - alpha) * fake_samples)
-        ).requires_grad_(
-            True
-        )  # size = (batch_size, 1, segment_size)
-        interpolates = interpolates.to(self.device)
-        d_interpolates, _ = discriminator.forward_interpolates(interpolates)
-        d_interpolates = [torch.mean(x, dim=1) for x in d_interpolates]
-        d_interpolates = (
-            torch.stack(d_interpolates).sum(dim=0).unsqueeze(1)
-        )  # size = (batch_size, 1)
-        fake = (
-            torch.Tensor(real_samples.shape[0], 1).fill_(1.0).to(self.device)
-        )  # size = (batch_size, 1)
-        # Get gradient w.r.t. interpolates
-        gradients = torch.autograd.grad(
-            outputs=d_interpolates,
-            inputs=interpolates,
-            grad_outputs=fake,
-            create_graph=True,
-            retain_graph=True,
-            only_inputs=True,
-        )[
-            0
-        ]  # size = (batch_size, 1, segment_size)
-        gradients = gradients.view(gradients.size(0), -1).to(
-            self.device
-        )  # size = (batch_size, segment_size)
-        gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean()  # size = (1)
-        self.log("training/gradient_penalty", gradient_penalty)
-        return gradient_penalty
 
     def training_step(self, batch, batch_idx):
         x, y, _, y_mel = batch
@@ -769,11 +613,11 @@ class HiFiGAN(pl.LightningModule):
             optim_d.zero_grad()
             # MPD
             y_df_hat_r, y_df_hat_g, _, _ = self.mpd(y, generated_wav.detach())
-            loss_disc_f, _, _ = self.discriminator_loss(y_df_hat_r, y_df_hat_g, gp=None)
+            loss_disc_f, _, _ = self.discriminator_loss(y_df_hat_r, y_df_hat_g)
             self.log("training/disc/mpd_loss", loss_disc_f, prog_bar=False)
             # MSD
             y_ds_hat_r, y_ds_hat_g, _, _ = self.msd(y, generated_wav.detach())
-            loss_disc_s, _, _ = self.discriminator_loss(y_ds_hat_r, y_ds_hat_g, gp=None)
+            loss_disc_s, _, _ = self.discriminator_loss(y_ds_hat_r, y_ds_hat_g)
             self.log("training/disc/msd_loss", loss_disc_s, prog_bar=False)
             # WGAN
             if self.use_wgan:
@@ -813,8 +657,8 @@ class HiFiGAN(pl.LightningModule):
         loss_fm_s = self.feature_loss(fmap_s_r, fmap_s_g)
         # loss_gen_f = -torch.mean(y_df_hat_g)
         # loss_gen_s = -torch.mean(y_ds_hat_g)
-        loss_gen_f, _ = self.generator_loss(y_df_hat_g, gp=self.use_gradient_penalty)
-        loss_gen_s, _ = self.generator_loss(y_ds_hat_g, gp=self.use_gradient_penalty)
+        loss_gen_f, _ = self.generator_loss(y_df_hat_g)
+        loss_gen_s, _ = self.generator_loss(y_ds_hat_g)
         self.log("training/gen/loss_fmap_f", loss_fm_f, prog_bar=False)
         self.log("training/gen/loss_fmap_s", loss_fm_s, prog_bar=False)
         self.log("training/gen/loss_gen_f", loss_gen_f, prog_bar=False)

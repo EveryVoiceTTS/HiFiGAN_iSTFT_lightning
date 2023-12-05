@@ -1,7 +1,7 @@
 import math
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from everyvoice.config.preprocessing_config import PreprocessingConfig
 from everyvoice.config.shared_types import (
@@ -26,63 +26,104 @@ class HiFiGANResblock(Enum):
     two = "2"
 
 
-class HiFiGANDepthwiseBlocks(ConfigModel):
-    """Only currently implemented for the generator"""
-
-    generator: bool = False
-
-
 class HiFiGANTrainTypes(Enum):
     original = "original"
     wgan = "wgan"
-    wgan_gp = "wgan-gp"
+    # wgan_gp = "wgan-gp"
 
 
 class HiFiGANModelConfig(ConfigModel):
-    resblock: HiFiGANResblock = HiFiGANResblock.one
-    upsample_rates: List[int] = [8, 8]
-    upsample_kernel_sizes: List[int] = [16, 16]
-    upsample_initial_channel: int = 512
-    resblock_kernel_sizes: List[int] = [3, 7, 11]
-    resblock_dilation_sizes: List[List[int]] = [[1, 3, 5], [1, 3, 5], [1, 3, 5]]
-    depthwise_separable_convolutions: HiFiGANDepthwiseBlocks = Field(
-        default_factory=HiFiGANDepthwiseBlocks
+    resblock: HiFiGANResblock = Field(
+        HiFiGANResblock.one,
+        description="Which resblock to use. See Kong et. al. 2020: https://arxiv.org/abs/2010.05646",
     )
-    activation_function: PossiblySerializedCallable = original_hifigan_leaky_relu
-    istft_layer: bool = True
-    msd_layers: int = 3
-    mpd_layers: List[int] = [2, 3, 5, 7, 11]
-
-
-class HiFiGANFreezingLayers(ConfigModel):
-    all_layers: bool = False
-    msd: bool = False
-    mpd: bool = False
-    generator: bool = False
+    upsample_rates: List[int] = Field(
+        [8, 8],
+        description="The stride of each convolutional layer in the upsampling module.",
+    )
+    upsample_kernel_sizes: List[int] = Field(
+        [16, 16],
+        description="The kernel size of each convolutional layer in the upsampling module.",
+    )
+    upsample_initial_channel: int = Field(
+        512,
+        description="The number of dimensions to project the Mel inputs to before being passed to the resblock.",
+    )
+    resblock_kernel_sizes: List[int] = Field(
+        [3, 7, 11],
+        description="The kernel size of each convolutional layer in the resblock.",
+    )
+    resblock_dilation_sizes: List[List[int]] = Field(
+        [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
+        description="The dilations of each convolution in each layer of the resblock.",
+    )
+    activation_function: PossiblySerializedCallable = Field(
+        original_hifigan_leaky_relu, description="The activation function to use."
+    )
+    istft_layer: bool = Field(
+        True,
+        description="Whether to predict phase and magnitude values and use an inverse Short-Time Fourier Transform instead of predicting a waveform directly. See Kaneko et. al. 2022: https://arxiv.org/abs/2203.02395",
+    )
+    msd_layers: int = Field(
+        3, description="The number of layers to use in the Multi-Scale Discriminator."
+    )
+    mpd_layers: List[int] = Field(
+        [2, 3, 5, 7, 11],
+        description="The size of each layer in the Multi-Period Discriminator.",
+    )
 
 
 class HiFiGANTrainingConfig(BaseTrainingConfig):
-    generator_warmup_steps: int = 0
-    gan_type: HiFiGANTrainTypes = HiFiGANTrainTypes.original
-    optimizer: Union[AdamOptimizer, AdamWOptimizer, RMSOptimizer] = Field(
-        default_factory=AdamWOptimizer
+    generator_warmup_steps: int = Field(
+        0,
+        description="The number of steps to run through before activating the discriminators.",
     )
-    wgan_clip_value: float = 0.01
-    use_weighted_sampler: bool = False
-    freeze_layers: HiFiGANFreezingLayers = Field(default_factory=HiFiGANFreezingLayers)
-    finetune: bool = False
+    gan_type: HiFiGANTrainTypes = Field(
+        HiFiGANTrainTypes.original,
+        description="The type of GAN to use. Can be set to either 'original' for a vanilla GAN, or 'wgan' for a Wasserstein GAN that clips gradients.",
+    )
+    optimizer: Union[AdamOptimizer, AdamWOptimizer, RMSOptimizer] = Field(
+        default_factory=AdamWOptimizer,  # type: ignore
+        description="Configuration settings for the optimizer.",
+    )
+    wgan_clip_value: float = Field(
+        0.01, description="The gradient clip value when gan_type='wgan'."
+    )
+    use_weighted_sampler: bool = Field(
+        False,
+        description="Whether to use a sampler which oversamples from the minority language or speaker class for balanced training.",
+    )
+    finetune: bool = Field(
+        False,
+        description="Whether to read spectrograms from 'preprocessed/synthesized_spec' instead of 'preprocessed/spec'. This is used when finetuning a pretrained spec-to-wav (vocoder) model using the outputs of a trained text-to-spec (feature prediction network) model.",
+    )
 
 
 class HiFiGANConfig(PartialLoadConfig):
-    model: HiFiGANModelConfig = Field(default_factory=HiFiGANModelConfig)
-    path_to_model_config_file: Optional[FilePath] = None
-    training: HiFiGANTrainingConfig = Field(default_factory=HiFiGANTrainingConfig)
-    path_to_training_config_file: Optional[FilePath] = None
-    preprocessing: PreprocessingConfig = Field(default_factory=PreprocessingConfig)
-    path_to_preprocessing_config_file: Optional[FilePath] = None
+    model: HiFiGANModelConfig = Field(
+        default_factory=HiFiGANModelConfig,  # type: ignore
+        description="The model configuration settings.",
+    )
+    path_to_model_config_file: Optional[FilePath] = Field(
+        None, description="The path of a model configuration file."
+    )
+    training: HiFiGANTrainingConfig = Field(
+        default_factory=HiFiGANTrainingConfig,  # type: ignore
+        description="The training configuration hyperparameters.",
+    )
+    path_to_training_config_file: Optional[FilePath] = Field(
+        None, description="The path of a training configuration file."
+    )
+    preprocessing: PreprocessingConfig = Field(
+        default_factory=PreprocessingConfig,  # type: ignore
+        description="The preprocessing configuration, including information about audio settings.",
+    )
+    path_to_preprocessing_config_file: Optional[FilePath] = Field(
+        None, description="The path of a preprocessing configuration file."
+    )
 
     @model_validator(mode="before")  # type: ignore
-    def load_partials(self, info: ValidationInfo):
+    def load_partials(self: Dict[Any, Any], info: ValidationInfo):
         config_path = (
             info.context.get("config_path", None) if info.context is not None else None
         )
@@ -134,7 +175,7 @@ class HiFiGANConfig(PartialLoadConfig):
             )
         # check that the upsampling hop size is equal to product of upsample rates
         if model_config.istft_layer:
-            upsampled_hop_size /= 4  # istft upsamples the rest
+            upsampled_hop_size //= 4  # istft upsamples the rest
         # check that upsampled hop size is equal to product of upsampling rates
         if upsampled_hop_size != upsample_rate_product:
             raise ValueError(
