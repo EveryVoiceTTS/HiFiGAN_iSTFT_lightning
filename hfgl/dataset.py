@@ -14,7 +14,7 @@ class SpecDataset(Dataset):
         self, audio_files, config: VocoderConfig, use_segments=False, finetune=False
     ):
         self.config = config
-        self.sep = config.preprocessing.value_separator
+        self.sep = "--"
         self.use_segments = use_segments
         self.audio_files = audio_files
         self.preprocessed_dir = Path(self.config.preprocessing.save_dir)
