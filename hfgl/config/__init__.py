@@ -83,7 +83,7 @@ class HiFiGANTrainingConfig(BaseTrainingConfig):
         description="The type of GAN to use. Can be set to either 'original' for a vanilla GAN, or 'wgan' for a Wasserstein GAN that clips gradients.",
     )
     optimizer: Union[AdamOptimizer, AdamWOptimizer, RMSOptimizer] = Field(
-        default_factory=AdamWOptimizer,  # type: ignore
+        default_factory=AdamWOptimizer,
         description="Configuration settings for the optimizer.",
     )
     wgan_clip_value: float = Field(
@@ -101,21 +101,21 @@ class HiFiGANTrainingConfig(BaseTrainingConfig):
 
 class HiFiGANConfig(PartialLoadConfig):
     model: HiFiGANModelConfig = Field(
-        default_factory=HiFiGANModelConfig,  # type: ignore
+        default_factory=HiFiGANModelConfig,
         description="The model configuration settings.",
     )
     path_to_model_config_file: Optional[FilePath] = Field(
         None, description="The path of a model configuration file."
     )
     training: HiFiGANTrainingConfig = Field(
-        default_factory=HiFiGANTrainingConfig,  # type: ignore
+        default_factory=HiFiGANTrainingConfig,
         description="The training configuration hyperparameters.",
     )
     path_to_training_config_file: Optional[FilePath] = Field(
         None, description="The path of a training configuration file."
     )
     preprocessing: PreprocessingConfig = Field(
-        default_factory=PreprocessingConfig,  # type: ignore
+        default_factory=PreprocessingConfig,
         description="The preprocessing configuration, including information about audio settings.",
     )
     path_to_preprocessing_config_file: Optional[FilePath] = Field(
