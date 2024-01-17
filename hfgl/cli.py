@@ -1,6 +1,5 @@
 from enum import Enum
 from pathlib import Path
-from typing import List
 
 import typer
 from everyvoice.base_cli.interfaces import (
@@ -24,7 +23,7 @@ class PreprocessCategories(str, Enum):
 @app.command()
 @merge_args(preprocess_base_command_interface)
 def preprocess(
-    steps: List[PreprocessCategories] = typer.Option(
+    steps: list[PreprocessCategories] = typer.Option(
         [cat.value for cat in PreprocessCategories],
         "-s",
         "--steps",

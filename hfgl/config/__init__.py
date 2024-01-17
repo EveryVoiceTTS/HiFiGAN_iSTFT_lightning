@@ -1,7 +1,7 @@
 import math
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional
 
 from everyvoice.config.preprocessing_config import PreprocessingConfig
 from everyvoice.config.shared_types import (
@@ -37,11 +37,11 @@ class HiFiGANModelConfig(ConfigModel):
         HiFiGANResblock.one,
         description="Which resblock to use. See Kong et. al. 2020: https://arxiv.org/abs/2010.05646",
     )
-    upsample_rates: List[int] = Field(
+    upsample_rates: list[int] = Field(
         [8, 8],
         description="The stride of each convolutional layer in the upsampling module.",
     )
-    upsample_kernel_sizes: List[int] = Field(
+    upsample_kernel_sizes: list[int] = Field(
         [16, 16],
         description="The kernel size of each convolutional layer in the upsampling module.",
     )
@@ -49,11 +49,11 @@ class HiFiGANModelConfig(ConfigModel):
         512,
         description="The number of dimensions to project the Mel inputs to before being passed to the resblock.",
     )
-    resblock_kernel_sizes: List[int] = Field(
+    resblock_kernel_sizes: list[int] = Field(
         [3, 7, 11],
         description="The kernel size of each convolutional layer in the resblock.",
     )
-    resblock_dilation_sizes: List[List[int]] = Field(
+    resblock_dilation_sizes: list[list[int]] = Field(
         [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
         description="The dilations of each convolution in each layer of the resblock.",
     )
@@ -67,7 +67,7 @@ class HiFiGANModelConfig(ConfigModel):
     msd_layers: int = Field(
         3, description="The number of layers to use in the Multi-Scale Discriminator."
     )
-    mpd_layers: List[int] = Field(
+    mpd_layers: list[int] = Field(
         [2, 3, 5, 7, 11],
         description="The size of each layer in the Multi-Period Discriminator.",
     )
@@ -82,7 +82,7 @@ class HiFiGANTrainingConfig(BaseTrainingConfig):
         HiFiGANTrainTypes.original,
         description="The type of GAN to use. Can be set to either 'original' for a vanilla GAN, or 'wgan' for a Wasserstein GAN that clips gradients.",
     )
-    optimizer: Union[AdamOptimizer, AdamWOptimizer, RMSOptimizer] = Field(
+    optimizer: AdamOptimizer | AdamWOptimizer | RMSOptimizer = Field(
         default_factory=AdamWOptimizer,
         description="Configuration settings for the optimizer.",
     )
@@ -123,7 +123,7 @@ class HiFiGANConfig(PartialLoadConfig):
     )
 
     @model_validator(mode="before")  # type: ignore
-    def load_partials(self: Dict[Any, Any], info: ValidationInfo):
+    def load_partials(self: dict[Any, Any], info: ValidationInfo):
         config_path = (
             info.context.get("config_path", None) if info.context is not None else None
         )

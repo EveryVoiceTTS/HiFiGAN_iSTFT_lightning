@@ -450,9 +450,9 @@ class HiFiGAN(pl.LightningModule):
         self.mpd = MultiPeriodDiscriminator(config)
         self.msd = MultiScaleDiscriminator(config)
         self.generator = Generator(config)
-        self.batch_size = (
-            self.config.training.batch_size
-        )  # this is declared explicitly so that auto_scale_batch_size works: https://pytorch-lightning.readthedocs.io/en/stable/advanced/training_tricks.html
+        # batch_size is declared explicitly so that auto_scale_batch_size works:
+        # https://pytorch-lightning.readthedocs.io/en/stable/advanced/training_tricks.html
+        self.batch_size = self.config.training.batch_size
         self.save_hyperparameters()  # TODO: ignore=['specific keys'] - I should ignore some unnecessary/problem values
         self.audio_config = config.preprocessing.audio
         self.sampling_rate_change = (
@@ -528,7 +528,8 @@ class HiFiGAN(pl.LightningModule):
             )
         else:
             scheduler_g = torch.optim.lr_scheduler.ExponentialLR(
-                optim_g, gamma=0.999  # TODO: parametrize this
+                optim_g,
+                gamma=0.999,  # TODO: parametrize this
             )
             scheduler_d = torch.optim.lr_scheduler.ExponentialLR(optim_d, gamma=0.999)
             return [optim_g, optim_d], [scheduler_g, scheduler_d]
