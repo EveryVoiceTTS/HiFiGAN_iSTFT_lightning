@@ -3,7 +3,7 @@ from pathlib import Path
 import torch
 from everyvoice.dataloader import BaseDataModule
 from everyvoice.model.vocoder.config import VocoderConfig
-from everyvoice.utils import check_dataset_size
+from everyvoice.utils import check_dataset_size, generic_dict_loader
 from torch.utils.data import Dataset
 
 from .utils import get_all_segments
@@ -111,12 +111,8 @@ class HiFiGANDataModule(BaseDataModule):
         self.batch_size = config.training.batch_size
 
     def load_dataset(self):
-        self.train_dataset = self.config.training.filelist_loader(
-            self.config.training.training_filelist
-        )
-        self.val_dataset = self.config.training.filelist_loader(
-            self.config.training.validation_filelist
-        )
+        self.train_dataset = generic_dict_loader(self.config.training.training_filelist)
+        self.val_dataset = generic_dict_loader(self.config.training.validation_filelist)
 
     def prepare_data(self):
         self.load_dataset()
