@@ -12,7 +12,6 @@ from everyvoice.utils.heavy import (
     dynamic_range_compression_torch,
     get_spectral_transform,
 )
-from pydantic import BaseModel
 from torch.nn import AvgPool1d, Conv1d, Conv2d, ConvTranspose1d
 from torch.nn.utils import remove_weight_norm, spectral_norm, weight_norm
 
@@ -490,18 +489,12 @@ class HiFiGAN(pl.LightningModule):
         Note, this shouldn't fail on different versions of pydantic anymore,
         but it will fail on breaking changes to the config. We should catch those exceptions
         and handle them appropriately."""
-
-        # Temporily support v1 checkpoints
-        # TODO: change this once we convert all existing pre-trained models to
-        # have serialized embedded configurations
-        if isinstance(checkpoint["hyper_parameters"]["config"], BaseModel):
-            self.config = checkpoint["hyper_parameters"]["config"]
-        else:
-            self.config = VocoderConfig(**checkpoint["hyper_parameters"]["config"])
+        self.config = VocoderConfig(**checkpoint["hyper_parameters"]["config"])
 
     def on_save_checkpoint(self, checkpoint):
         """Serialize the checkpoint hyperparameters"""
         checkpoint["hyper_parameters"]["config"] = self.config.model_dump(
+            mode="json",
             exclude={
                 "path_to_preprocessing_config_file": True,
                 "path_to_text_config_file": True,
@@ -511,7 +504,7 @@ class HiFiGAN(pl.LightningModule):
                 "path_to_aligner_config_file": True,
                 "path_to_vocoder_config_file": True,
                 "path_to_feature_prediction_config_file": True,
-            }
+            },
         )
 
     def configure_optimizers(self):
