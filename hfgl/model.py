@@ -1,6 +1,5 @@
 import itertools
 import math
-from typing import Dict, Union
 
 import pytorch_lightning as pl
 import torch
@@ -440,7 +439,7 @@ class MultiScaleDiscriminator(torch.nn.Module):
 
 
 class HiFiGAN(pl.LightningModule):
-    def __init__(self, config: Union[Dict, VocoderConfig]):
+    def __init__(self, config: dict | VocoderConfig):
         super().__init__()
         self.automatic_optimization = False
         # Because we serialize the configurations when saving checkpoints,
