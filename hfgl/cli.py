@@ -11,6 +11,7 @@ from merge_args import merge_args
 
 app = typer.Typer(
     pretty_exceptions_show_locals=False,
+    context_settings={"help_option_names": ["-h", "--help"]},
     help="A PyTorch Lightning implementation of the HiFiGAN and iSTFT-Net vocoders",
 )
 
