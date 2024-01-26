@@ -72,7 +72,7 @@ def synthesize(
         exists=True,
         dir_okay=False,
         file_okay=True,
-        help="The path to some spectral features",
+        help="The path to a torch file containing time-oriented spectral features [T (frames), K (Mel bands)]",
     ),
     generator_path: Path = typer.Option(
         ...,
@@ -81,7 +81,7 @@ def synthesize(
         exists=True,
         dir_okay=False,
         file_okay=True,
-        help="The path to a trained model",
+        help="The path to a trained EveryVoice spec-to-wav model",
     ),
 ):
     """Given some Mel spectrograms and a trained model, generate some audio. i.e. perform *copy synthesis*"""
