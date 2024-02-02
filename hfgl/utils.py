@@ -35,6 +35,13 @@ def synthesize_data(data: torch.Tensor, generator_ckpt: dict) -> Tuple[np.ndarra
         ).to(data.device)
         with torch.no_grad():
             mag, phase = model.generator(data.transpose(1, 2))
+        # Can't use complex numbers on MPS for some reason, tested on torch 2.2.0
+        if mag.device.type == "mps":
+            mag = mag.to("cpu")
+            inverse_spectral_transform.to("cpu")
+        if phase.device.type == "mps":
+            phase = phase.to("cpu")
+            inverse_spectral_transform.to("cpu")
         wavs = inverse_spectral_transform(mag * torch.exp(phase * 1j)).unsqueeze(-2)
     else:
         with torch.no_grad():
