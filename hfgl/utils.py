@@ -17,7 +17,7 @@ def synthesize_data(data: torch.Tensor, generator_ckpt: dict) -> Tuple[np.ndarra
         data (Tensor): data tensor, expects output from feature prediction network to be size (b=batch_size, t=number_of_frames, k=n_mels)
         generator_ckpt (dict): HiFiGANLightning checkpoint, expects checkpoint to have a 'hyper_parameters.config' key and HiFiGANConfig object value as well as a 'state_dict' key with model weight as the value
     Returns:
-        Tuple[np.ndarray, int]: a 1-D array of the wav file and the sampling rate
+        Tuple[np.ndarray, int]: a B, T array of the synthesized audio and the sampling rate
     """
     config: dict | HiFiGANConfig = generator_ckpt["hyper_parameters"]["config"]
     if isinstance(config, dict):
@@ -35,12 +35,13 @@ def synthesize_data(data: torch.Tensor, generator_ckpt: dict) -> Tuple[np.ndarra
         ).to(data.device)
         with torch.no_grad():
             mag, phase = model.generator(data.transpose(1, 2))
-        wav = inverse_spectral_transform(mag * torch.exp(phase * 1j)).unsqueeze(-2)
+        wavs = inverse_spectral_transform(mag * torch.exp(phase * 1j)).unsqueeze(-2)
     else:
         with torch.no_grad():
-            wav = model.generator(data.transpose(1, 2))
+            wavs = model.generator(data.transpose(1, 2))
+    # squeeze to remove the channel dimension
     return (
-        wav.squeeze().cpu().numpy(),
+        wavs.squeeze(1).cpu().numpy(),
         config.preprocessing.audio.output_sampling_rate,
     )
 
