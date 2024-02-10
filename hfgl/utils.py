@@ -5,6 +5,7 @@ from typing import Tuple
 import numpy as np
 import torch
 from everyvoice.utils.heavy import get_spectral_transform
+from loguru import logger
 
 from .config import HiFiGANConfig
 from .model import HiFiGAN
@@ -35,11 +36,12 @@ def synthesize_data(data: torch.Tensor, generator_ckpt: dict) -> Tuple[np.ndarra
         ).to(data.device)
         with torch.no_grad():
             mag, phase = model.generator(data.transpose(1, 2))
-        # Can't use complex numbers on MPS for some reason, tested on torch 2.2.0
-        if mag.device.type == "mps":
+        # We can remove this once the fix for https://github.com/pytorch/pytorch/issues/119088 is merged
+        if mag.device.types == "mps" or phase.device.type == "mps":
+            logger.warning(
+                "Handling complex numbers is broken on MPS (last checked in torch==2.2.0), so we are falling back to CPU"
+            )
             mag = mag.to("cpu")
-            inverse_spectral_transform.to("cpu")
-        if phase.device.type == "mps":
             phase = phase.to("cpu")
             inverse_spectral_transform.to("cpu")
         wavs = inverse_spectral_transform(mag * torch.exp(phase * 1j)).unsqueeze(-2)
