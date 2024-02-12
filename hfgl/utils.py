@@ -37,7 +37,7 @@ def synthesize_data(data: torch.Tensor, generator_ckpt: dict) -> Tuple[np.ndarra
         with torch.no_grad():
             mag, phase = model.generator(data.transpose(1, 2))
         # We can remove this once the fix for https://github.com/pytorch/pytorch/issues/119088 is merged
-        if mag.device.types == "mps" or phase.device.type == "mps":
+        if mag.device.type == "mps" or phase.device.type == "mps":
             logger.warning(
                 "Handling complex numbers is broken on MPS (last checked in torch==2.2.0), so we are falling back to CPU"
             )
