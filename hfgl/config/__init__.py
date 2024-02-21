@@ -7,9 +7,9 @@ from everyvoice.config.preprocessing_config import PreprocessingConfig
 from everyvoice.config.shared_types import (
     AdamOptimizer,
     AdamWOptimizer,
+    BaseModelWithContact,
     BaseTrainingConfig,
     ConfigModel,
-    PartialLoadConfig,
     RMSOptimizer,
     init_context,
 )
@@ -99,7 +99,7 @@ class HiFiGANTrainingConfig(BaseTrainingConfig):
     )
 
 
-class HiFiGANConfig(PartialLoadConfig):
+class HiFiGANConfig(BaseModelWithContact):
     model: HiFiGANModelConfig = Field(
         default_factory=HiFiGANModelConfig,
         description="The model configuration settings.",
