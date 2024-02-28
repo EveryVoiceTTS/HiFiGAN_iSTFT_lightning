@@ -21,12 +21,29 @@ from everyvoice.utils import (
 from pydantic import Field, FilePath, ValidationInfo, model_validator
 
 
-class HiFiGANResblock(Enum):
+# NOTE: We need to derive from both str and Enum if we want `HiFiGANResblock.one == "one"` to be True.
+#    Otherwise, `HiFiGANResblock.one == "one"` will be false.
+#    [Python Enum Comparisons](https://docs.python.org/3/howto/enum.html#comparisons)
+#    Comparisons against non-enumeration values will always compare not equal.
+#    In [1]: from enum import Enum
+#    In [2]: class A(Enum):
+#       ...:     a = "a"
+#       ...:     b = "b"
+#       ...:
+#    In [3]: A.a == "a"
+#    Out[3]: False
+#    In [4]: class S(str, Enum):
+#       ...:     a = "a"
+#       ...:     b = "b"
+#       ...:
+#    In [5]: S.a == "a"
+#    Out[5]: True
+class HiFiGANResblock(str, Enum):
     one = "1"
     two = "2"
 
 
-class HiFiGANTrainTypes(Enum):
+class HiFiGANTrainTypes(str, Enum):
     original = "original"
     wgan = "wgan"
     # wgan_gp = "wgan-gp"
