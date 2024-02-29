@@ -12,7 +12,9 @@ from everyvoice.utils.heavy import (
     get_spectral_transform,
 )
 from torch.nn import AvgPool1d, Conv1d, Conv2d, ConvTranspose1d
-from torch.nn.utils import remove_weight_norm, spectral_norm, weight_norm
+from torch.nn.utils import spectral_norm
+from torch.nn.utils.parametrizations import weight_norm
+from torch.nn.utils.parametrize import remove_parametrizations
 
 from .config import HiFiGANResblock, HiFiGANTrainTypes
 
@@ -86,15 +88,15 @@ class ResBlock1(torch.nn.Module):
         for layer in self.convs1:
             if layer.__class__.__name__ == "Sequential":
                 for sub_layer in layer:
-                    remove_weight_norm(sub_layer)
+                    remove_parametrizations(sub_layer, "weight")
             else:
-                remove_weight_norm(layer)
+                remove_parametrizations(layer, "weight")
         for layer in self.convs2:
             if layer.__class__.__name__ == "Sequential":
                 for sub_layer in layer:
-                    remove_weight_norm(sub_layer)
+                    remove_parametrizations(sub_layer, "weight")
             else:
-                remove_weight_norm(layer)
+                remove_parametrizations(layer, "weight")
 
 
 class ResBlock2(torch.nn.Module):
@@ -144,9 +146,9 @@ class ResBlock2(torch.nn.Module):
         for layer in self.convs:
             if layer.__class__.__name__ == "Sequential":
                 for sub_layer in layer:
-                    remove_weight_norm(sub_layer)
+                    remove_parametrizations(sub_layer, "weight")
             else:
-                remove_weight_norm(layer)
+                remove_parametrizations(layer, "weight")
 
 
 class Generator(torch.nn.Module):
@@ -250,21 +252,21 @@ class Generator(torch.nn.Module):
         for layer in self.ups:
             if layer.__class__.__name__ == "Sequential":
                 for sub_layer in layer:
-                    remove_weight_norm(sub_layer)
+                    remove_parametrizations(sub_layer, "weight")
             else:
-                remove_weight_norm(layer)
+                remove_parametrizations(layer, "weight")
         for layer in self.resblocks:
             layer.remove_weight_norm()
         if self.conv_pre.__class__.__name__ == "Sequential":
             for sub_layer in self.conv_pre:
-                remove_weight_norm(sub_layer)
+                remove_parametrizations(sub_layer, "weight")
         else:
-            remove_weight_norm(self.conv_pre)
+            remove_parametrizations(self.conv_pre, "weight")
         if self.conv_post.__class__.__name__ == "Sequential":
             for sub_layer in self.conv_post:
-                remove_weight_norm(sub_layer)
+                remove_parametrizations(sub_layer, "weight")
         else:
-            remove_weight_norm(self.conv_post)
+            remove_parametrizations(self.conv_post, "weight")
 
 
 class DiscriminatorP(torch.nn.Module):
