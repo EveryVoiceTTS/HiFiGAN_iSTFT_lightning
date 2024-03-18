@@ -14,6 +14,8 @@ from everyvoice.utils.heavy import (
 from torch.nn import AvgPool1d, Conv1d, Conv2d, ConvTranspose1d
 from torch.nn.utils import remove_weight_norm, spectral_norm, weight_norm
 
+from .config import HiFiGANResblock, HiFiGANTrainTypes
+
 
 def init_weights(m, mean=0.0, std=0.01):
     classname = m.__class__.__name__
@@ -169,7 +171,11 @@ class Generator(torch.nn.Module):
             )
         )
 
-        resblock = ResBlock1 if self.model_vocoder_config.resblock == "1" else ResBlock2
+        resblock = (
+            ResBlock1
+            if self.model_vocoder_config.resblock is HiFiGANResblock.one
+            else ResBlock2
+        )
 
         self.ups = nn.ModuleList()
         for i, (u, k) in enumerate(
@@ -459,7 +465,7 @@ class HiFiGAN(pl.LightningModule):
             self.audio_config.output_sampling_rate
             // self.audio_config.input_sampling_rate
         )
-        self.use_wgan = self.config.training.gan_type == "wgan"
+        self.use_wgan = self.config.training.gan_type is HiFiGANTrainTypes.wgan
         # We don't have to set the fft size and hop/window lengths as hyperparameters here, because we can just multiply by the upsampling rate
         self.spectral_transform = get_spectral_transform(
             self.audio_config.spec_type,
