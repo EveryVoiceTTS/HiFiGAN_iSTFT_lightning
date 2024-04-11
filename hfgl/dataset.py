@@ -41,15 +41,17 @@ class SpecDataset(Dataset):
         speaker = "default" if "speaker" not in item else item["speaker"]
         language = "default" if "language" not in item else item["language"]
         y, _ = torchaudio.load(
-            self.preprocessed_dir
-            / "audio"
-            / self.sep.join(
-                [
-                    item["basename"],
-                    speaker,
-                    language,
-                    f"audio-{self.output_sampling_rate}.wav",
-                ]
+            str(
+                self.preprocessed_dir
+                / "audio"
+                / self.sep.join(
+                    [
+                        item["basename"],
+                        speaker,
+                        language,
+                        f"audio-{self.output_sampling_rate}.wav",
+                    ]
+                )
             )
         )
         y = (
