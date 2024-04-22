@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import torch
+import torchaudio
 from everyvoice.dataloader import BaseDataModule
 from everyvoice.model.vocoder.config import VocoderConfig
 from everyvoice.utils import check_dataset_size
@@ -39,18 +40,23 @@ class SpecDataset(Dataset):
         item = self.audio_files[index]
         speaker = "default" if "speaker" not in item else item["speaker"]
         language = "default" if "language" not in item else item["language"]
-        y = torch.load(
-            self.preprocessed_dir
-            / "audio"
-            / self.sep.join(
-                [
-                    item["basename"],
-                    speaker,
-                    language,
-                    f"audio-{self.output_sampling_rate}.pt",
-                ]
-            )
-        ).squeeze()  # [samples] should be output sample rate, squeeze to get rid of channels just in case
+        y, _ = torchaudio.load(
+            (
+                self.config.preprocessing.save_dir
+                / "audio"
+                / self.sep.join(
+                    [
+                        item["basename"],
+                        speaker,
+                        language,
+                        f"audio-{self.output_sampling_rate}.wav",
+                    ]
+                )
+            ).__str__()
+        )
+        y = (
+            y.squeeze()
+        )  # [samples] should be output sample rate, squeeze to get rid of channels
         y_mel = torch.load(
             self.preprocessed_dir
             / "spec"
