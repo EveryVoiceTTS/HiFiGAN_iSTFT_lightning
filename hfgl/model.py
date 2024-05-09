@@ -79,7 +79,7 @@ class ResBlock1(torch.nn.Module):
         for c1, c2 in zip(self.convs1, self.convs2):
             xt = self.config.model.activation_function(x)
             xt = c1(xt)
-            xt = self.config.model.activation_function(x)
+            xt = self.config.model.activation_function(xt)
             xt = c2(xt)
             x = xt + x
         return x
