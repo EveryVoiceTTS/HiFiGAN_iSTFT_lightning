@@ -234,7 +234,7 @@ class Generator(torch.nn.Module):
                 if xs is None:
                     xs = self.resblocks[i * self.num_kernels + j](x)
                 else:
-                    xs = xs + self.resblocks[i * self.num_kernels + j](x)
+                    xs += self.resblocks[i * self.num_kernels + j](x)
             x = xs / self.num_kernels
         x = self.config.model.activation_function(x)
         if self.config.model.istft_layer:
