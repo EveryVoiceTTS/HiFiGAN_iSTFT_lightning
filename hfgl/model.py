@@ -236,7 +236,8 @@ class Generator(torch.nn.Module):
                 else:
                     xs += self.resblocks[i * self.num_kernels + j](x)
             x = xs / self.num_kernels
-        x = self.config.model.activation_function(x)
+        # NOTE: Changed from user provided activation to fixed leaky_relu to mimic our reference code in jik876.
+        x = F.leaky_relu(x)
         if self.config.model.istft_layer:
             x = self.reflection_pad(x)
             x = self.conv_post(x)
