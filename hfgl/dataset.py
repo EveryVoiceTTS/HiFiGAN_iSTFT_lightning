@@ -82,7 +82,7 @@ class SpecDataset(Dataset):
                         f"spec-pred-{self.input_sampling_rate}-{self.config.preprocessing.audio.spec_type}.pt",
                     ]
                 )
-            )
+            ).transpose(0, 1)
         else:
             x = torch.load(
                 self.preprocessed_dir
