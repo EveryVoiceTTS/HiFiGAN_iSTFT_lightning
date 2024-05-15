@@ -11,6 +11,7 @@ from everyvoice.utils.heavy import (
     dynamic_range_compression_torch,
     get_spectral_transform,
 )
+from loguru import logger
 from torch.nn import AvgPool1d, Conv1d, Conv2d, ConvTranspose1d
 from torch.nn.utils import spectral_norm
 from torch.nn.utils.parametrizations import weight_norm
@@ -459,11 +460,34 @@ class HiFiGAN(pl.LightningModule):
         self.mpd = MultiPeriodDiscriminator(config)
         self.msd = MultiScaleDiscriminator(config)
         self.generator = Generator(config)
+        self.save_hyperparameters()  # TODO: ignore=['specific keys'] - I should ignore some unnecessary/problem values
+        self.update_config_settings()
+        if self.config.model.istft_layer:
+            self.inverse_spectral_transform = get_spectral_transform(
+                "istft",
+                self.generator.post_n_fft,
+                self.generator.post_n_fft,
+                self.generator.post_n_fft // 4,
+            )
+        # TODO: figure out multiple nodes/gpus: https://pytorch-lightning.readthedocs.io/en/1.4.0/advanced/multi_gpu.html
+
+    def update_config_settings(self):
         # batch_size is declared explicitly so that auto_scale_batch_size works:
         # https://pytorch-lightning.readthedocs.io/en/stable/advanced/training_tricks.html
+        if self.config.training.finetune:
+            logger.info(
+                "You are fine-tuning, so we are freezing the first 3 layers of the MP discriminators and first 4 layers of the MSD discriminators."
+            )
+            for disc in self.mpd.discriminators:
+                for layer in disc.convs[:3]:
+                    for p in layer.parameters():
+                        p.requires_grad = False
+            for disc in self.msd.discriminators:
+                for layer in disc.convs[:4]:
+                    for p in layer.parameters():
+                        p.requires_grad = False
         self.batch_size = self.config.training.batch_size
-        self.save_hyperparameters()  # TODO: ignore=['specific keys'] - I should ignore some unnecessary/problem values
-        self.audio_config = config.preprocessing.audio
+        self.audio_config = self.config.preprocessing.audio
         self.sampling_rate_change = (
             self.audio_config.output_sampling_rate
             // self.audio_config.input_sampling_rate
@@ -480,14 +504,6 @@ class HiFiGAN(pl.LightningModule):
             sample_rate=self.audio_config.output_sampling_rate,
             n_mels=self.audio_config.n_mels,
         )
-        if self.config.model.istft_layer:
-            self.inverse_spectral_transform = get_spectral_transform(
-                "istft",
-                self.generator.post_n_fft,
-                self.generator.post_n_fft,
-                self.generator.post_n_fft // 4,
-            )
-        # TODO: figure out multiple nodes/gpus: https://pytorch-lightning.readthedocs.io/en/1.4.0/advanced/multi_gpu.html
 
     def forward(self, x):
         return self.generator(x)
@@ -504,9 +520,16 @@ class HiFiGAN(pl.LightningModule):
         checkpoint["hyper_parameters"]["config"] = self.config.model_checkpoint_dump()
 
     def configure_optimizers(self):
+        generator_params = self.generator.parameters()
+        if self.config.training.finetune:
+            msd_params = filter(lambda p: p.requires_grad, self.msd.parameters())
+            mpd_params = filter(lambda p: p.requires_grad, self.mpd.parameters())
+        else:
+            msd_params = self.msd.parameters()
+            mpd_params = self.mpd.parameters()
         if self.config.training.optimizer.name == "adamw":
             optim_g = torch.optim.AdamW(
-                self.generator.parameters(),
+                generator_params,
                 self.config.training.optimizer.learning_rate,
                 betas=[
                     self.config.training.optimizer.betas[0],
@@ -514,7 +537,7 @@ class HiFiGAN(pl.LightningModule):
                 ],
             )
             optim_d = torch.optim.AdamW(
-                itertools.chain(self.msd.parameters(), self.mpd.parameters()),
+                itertools.chain(msd_params, mpd_params),
                 self.config.training.optimizer.learning_rate,
                 betas=[
                     self.config.training.optimizer.betas[0],
@@ -523,11 +546,11 @@ class HiFiGAN(pl.LightningModule):
             )
         elif self.config.training.optimizer.name == "rms":
             optim_g = torch.optim.RMSprop(
-                self.generator.parameters(),
+                generator_params,
                 lr=self.config.training.optimizer.learning_rate,
             )
             optim_d = torch.optim.RMSprop(
-                itertools.chain(self.msd.parameters(), self.mpd.parameters()),
+                itertools.chain(msd_params, mpd_params),
                 lr=self.config.training.optimizer.learning_rate,
             )
         if self.use_wgan:
