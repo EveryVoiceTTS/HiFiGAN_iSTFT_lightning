@@ -18,7 +18,14 @@ from everyvoice.utils import (
     load_config_from_json_or_yaml_path,
     original_hifigan_leaky_relu,
 )
-from pydantic import Field, FilePath, ValidationInfo, field_validator, model_validator
+from pydantic import (
+    Field,
+    FilePath,
+    ValidationInfo,
+    field_serializer,
+    field_validator,
+    model_validator,
+)
 
 
 # NOTE: We need to derive from both str and Enum if we want `HiFiGANResblock.one == "one"` to be True.
@@ -94,6 +101,10 @@ class HiFiGANModelConfig(ConfigModel):
         description="The size of each layer in the Multi-Period Discriminator.",
     )
 
+    @field_serializer("resblock")
+    def convert_enum(self, resblock: HiFiGANResblock):
+        return resblock.value
+
     @field_validator("resblock", mode="after")
     @classmethod
     def convert_to_HiFiGANResblock(
@@ -128,6 +139,10 @@ class HiFiGANTrainingConfig(BaseTrainingConfig):
         False,
         description="Whether to read spectrograms from 'preprocessed/synthesized_spec' instead of 'preprocessed/spec'. This is used when finetuning a pretrained spec-to-wav (vocoder) model using the outputs of a trained text-to-spec (feature prediction network) model.",
     )
+
+    @field_serializer("gan_type")
+    def convert_enum(self, gan_type: HiFiGANTrainTypes):
+        return gan_type.value
 
     @field_validator("gan_type", mode="after")
     @classmethod
