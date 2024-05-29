@@ -91,12 +91,13 @@ def synthesize(
     import torch
     from scipy.io.wavfile import write
 
-    from .utils import synthesize_data
+    from .utils import load_hifigan_from_checkpoint, synthesize_data
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     checkpoint = torch.load(generator_path, map_location=device)
     data = torch.load(data_path, map_location=device)
-    wav, sr = synthesize_data(data, checkpoint)
+    vocoder_model, vocoder_config = load_hifigan_from_checkpoint(checkpoint, device)
+    wav, sr = synthesize_data(data, vocoder_model, vocoder_config)
     logger.info(f"Writing file {data_path}.wav")
     write(f"{data_path}.wav", sr, wav)
 

@@ -11,22 +11,28 @@ from .config import HiFiGANConfig
 from .model import HiFiGAN
 
 
-def synthesize_data(data: torch.Tensor, generator_ckpt: dict) -> Tuple[np.ndarray, int]:
+def load_hifigan_from_checkpoint(ckpt: dict, device) -> Tuple[HiFiGAN, HiFiGANConfig]:
+    config: dict | HiFiGANConfig = ckpt["hyper_parameters"]["config"]
+    if isinstance(config, dict):
+        config = HiFiGANConfig(**config)
+    model = HiFiGAN(config).to(device)
+    model.load_state_dict(ckpt["state_dict"])
+    model.generator.eval()
+    model.generator.remove_weight_norm()
+    return model, config
+
+
+def synthesize_data(
+    data: torch.Tensor, model: HiFiGAN, config: HiFiGANConfig
+) -> Tuple[np.ndarray, int]:
     """Synthesize a batch of waveforms from spectral features
 
     Args:
         data (Tensor): data tensor, expects output from feature prediction network to be size (b=batch_size, t=number_of_frames, k=n_mels)
-        generator_ckpt (dict): HiFiGANLightning checkpoint, expects checkpoint to have a 'hyper_parameters.config' key and HiFiGANConfig object value as well as a 'state_dict' key with model weight as the value
+        ckpt (dict): HiFiGANLightning checkpoint, expects checkpoint to have a 'hyper_parameters.config' key and HiFiGANConfig object value as well as a 'state_dict' key with model weight as the value
     Returns:
         Tuple[np.ndarray, int]: a B, T array of the synthesized audio and the sampling rate
     """
-    config: dict | HiFiGANConfig = generator_ckpt["hyper_parameters"]["config"]
-    if isinstance(config, dict):
-        config = HiFiGANConfig(**config)
-    model = HiFiGAN(config).to(data.device)
-    model.load_state_dict(generator_ckpt["state_dict"])
-    model.generator.eval()
-    model.generator.remove_weight_norm()
     if config.model.istft_layer:
         inverse_spectral_transform = get_spectral_transform(
             "istft",
