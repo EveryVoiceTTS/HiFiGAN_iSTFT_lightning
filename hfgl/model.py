@@ -11,7 +11,6 @@ from everyvoice.utils.heavy import (
     dynamic_range_compression_torch,
     get_spectral_transform,
 )
-from loguru import logger
 from torch.nn import AvgPool1d, Conv1d, Conv2d, ConvTranspose1d
 from torch.nn.utils import spectral_norm
 from torch.nn.utils.parametrizations import weight_norm
@@ -476,9 +475,6 @@ class HiFiGAN(pl.LightningModule):
         # batch_size is declared explicitly so that auto_scale_batch_size works:
         # https://pytorch-lightning.readthedocs.io/en/stable/advanced/training_tricks.html
         if self.config.training.finetune:
-            logger.info(
-                "You are fine-tuning, so we are freezing the first 3 layers of the MP discriminators and first 4 layers of the MSD discriminators."
-            )
             for disc in self.mpd.discriminators:
                 for layer in disc.convs[:3]:
                     for p in layer.parameters():
