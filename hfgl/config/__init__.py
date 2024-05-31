@@ -67,11 +67,11 @@ class HiFiGANModelConfig(ConfigModel):
         description="Which resblock to use. See Kong et. al. 2020: https://arxiv.org/abs/2010.05646",
     )
     upsample_rates: list[int] = Field(
-        [8, 8],
+        [8, 8, 2, 2],
         description="The stride of each convolutional layer in the upsampling module.",
     )
     upsample_kernel_sizes: list[int] = Field(
-        [16, 16],
+        [16, 16, 4, 4],
         description="The kernel size of each convolutional layer in the upsampling module.",
     )
     upsample_initial_channel: int = Field(
@@ -90,7 +90,7 @@ class HiFiGANModelConfig(ConfigModel):
         original_hifigan_leaky_relu, description="The activation function to use."
     )
     istft_layer: bool = Field(
-        True,
+        False,
         description="Whether to predict phase and magnitude values and use an inverse Short-Time Fourier Transform instead of predicting a waveform directly. See Kaneko et. al. 2022: https://arxiv.org/abs/2203.02395",
     )
     msd_layers: int = Field(
