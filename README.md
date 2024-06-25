@@ -4,7 +4,7 @@
 <!-- [![Build Status](https://github.com/roedoejet/g2p/actions/workflows/tests.yml/badge.svg)](https://github.com/roedoejet/g2p/actions) -->
 <!-- [![PyPI package](https://img.shields.io/pypi/v/hfgl.svg)](https://pypi.org/project/g2p/) -->
 [![license](https://img.shields.io/badge/Licence-MIT-green)](LICENSE)
-[![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square)](https://github.com/roedoejet/HiFiGAN_iSTFT_lightning)
+[![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square)](https://github.com/EveryVoiceTTS/HiFiGAN_iSTFT_lightning)
 
 🚧 Under Construction! This repo is not expected to work fully. Please check back later for a stable release. 🚧
 
@@ -12,7 +12,7 @@
 
 This library is for training [HiFiGAN](https://arxiv.org/abs/2010.05646) and [iSTFT-Net](https://arxiv.org/abs/2203.02395) vocoders for speech synthesis. This implementation is one part of the [Speech Generation for Indigenous Language Education (SGILE)](#background) Project.
 
-This repo has been separated in case you would like to use it separately from the broader SGILE system, but if you are looking to build speech synthesis systems from scratch, please visit [the main repository](https://github.com/roedoejet/EveryVoice)
+This repo has been separated in case you would like to use it separately from the broader SGILE system, but if you are looking to build speech synthesis systems from scratch, please visit [the main repository](https://github.com/EveryVoiceTTS/EveryVoice)
 
 ## Table of Contents
 - HiFiGAN/iSTFT-Net Vocoder
@@ -24,8 +24,8 @@ This repo has been separated in case you would like to use it separately from th
   - [License](#license) -->
 
 See also:
-  - [SGILE FastSpeech2](https://github.com/roedoejet/FastSpeech2_lightning)
-  - [SGILE DeepForcedAligner](https://github.com/roedoejet/DeepForcedAligner_lightning)
+  - [SGILE FastSpeech2](https://github.com/EveryVoiceTTS/FastSpeech2_lightning)
+  - [SGILE DeepForcedAligner](https://github.com/EveryVoiceTTS/DeepForcedAligner_lightning)
   - [Requirements and Motivations of Low-Resource Speech Synthesis for Language Revitalization](https://aclanthology.org/2022.acl-long.507/)
 
 ## Background
@@ -45,7 +45,7 @@ This
 Clone clone the repo and pip install it locally:
 
 ```sh
-$ git clone https://github.com/roedoejet/HiFiGAN_iSTFT_lightning.git
+$ git clone https://github.com/EveryVoiceTTS/HiFiGAN_iSTFT_lightning.git
 $ cd HiFiGAN_iSTFT_lightning
 $ pip install -e .
 ```
@@ -89,8 +89,8 @@ Coming...
 ## Contributing
 
 Feel free to dive in!
- - [Open an issue](https://github.com/roedoejet/EveryVoice/issues/new) in the main EveryVoice repo with the tag `[HiFiGAN]`,
- - submit PRs to this repo with a corresponding submodule update PR to [EveryVoice](https://github.com/roedoejet/EveryVoice).
+ - [Open an issue](https://github.com/EveryVoiceTTS/EveryVoice/issues/new) in the main EveryVoice repo with the tag `[HiFiGAN]`,
+ - submit PRs to this repo with a corresponding submodule update PR to [EveryVoice](https://github.com/EveryVoiceTTS/EveryVoice).
 
 This repo follows the [Contributor Covenant](http://contributor-covenant.org/version/1/3/0/) Code of Conduct.
 
@@ -102,7 +102,7 @@ pre-commit install
 gitlint install-hook
 ```
 
-Have a look at [Contributing.md](https://github.com/roedoejet/EveryVoice/blob/main/Contributing.md)
+Have a look at [Contributing.md](https://github.com/EveryVoiceTTS/EveryVoice/blob/main/Contributing.md)
 for the full details on the Conventional Commit messages we prefer, our code
 formatting conventions, and our Git hooks.
 

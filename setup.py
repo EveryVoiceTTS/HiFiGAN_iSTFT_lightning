@@ -27,7 +27,7 @@ setup(
     author="Aidan Pine",
     author_email="hello@aidanpine.ca",
     license="MIT",
-    url="https://github.com/roedoejet/HiFiGAN_iSTFT_lightning",
+    url="https://github.com/EveryVoiceTTS/HiFiGAN_iSTFT_lightning",
     description="An Unofficial Implementation of HiFiGAN and iSTFT-Net for Waveform Generation",
     long_description=long_description,
     long_description_content_type="text/markdown",
