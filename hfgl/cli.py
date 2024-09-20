@@ -65,6 +65,49 @@ def train(**kwargs):
 
 
 @app.command()
+def export(
+    model_path: Path = typer.Argument(
+        None,
+        exists=True,
+        dir_okay=False,
+        file_okay=True,
+        help="The path to a trained EveryVoice spec-to-wav model",
+        autocompletion=complete_path,
+    ),
+    output_path: Path = typer.Option(
+        "exported.ckpt",
+        "--output",
+        "-o",
+        exists=False,
+        dir_okay=False,
+        file_okay=True,
+        help="The path to a trained EveryVoice spec-to-wav model",
+        autocompletion=complete_path,
+    ),
+):
+    import os
+
+    import torch
+
+    from .utils import sizeof_fmt
+
+    orig_size = sizeof_fmt(os.path.getsize(model_path))
+    vocoder_ckpt = torch.load(model_path, map_location=torch.device("cpu"))
+    for k in list(vocoder_ckpt["state_dict"].keys()):
+        if not k.startswith("generator"):
+            del vocoder_ckpt["state_dict"][k]
+    del vocoder_ckpt["loops"]
+    del vocoder_ckpt["callbacks"]
+    del vocoder_ckpt["optimizer_states"]
+    del vocoder_ckpt["lr_schedulers"]
+    torch.save(vocoder_ckpt, output_path)
+    new_size = sizeof_fmt(os.path.getsize(output_path))
+    logger.info(
+        f"Checkpoint saved at '{output_path}'. Reduced size from {orig_size} to {new_size}. This checkpoint will only be usable for inference/synthesis, and not for training."
+    )
+
+
+@app.command()
 def synthesize(
     data_path: Path = typer.Option(
         ...,

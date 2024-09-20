@@ -8,14 +8,31 @@ from everyvoice.utils.heavy import get_spectral_transform
 from loguru import logger
 
 from .config import HiFiGANConfig
-from .model import HiFiGAN
+from .model import HiFiGAN, HiFiGANGenerator
+
+
+def sizeof_fmt(num, suffix="B"):
+    # From: https://stackoverflow.com/questions/1094841/get-a-human-readable-version-of-a-file-size
+    for unit in ("", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"):
+        if abs(num) < 1024.0:
+            return f"{num:3.1f}{unit}{suffix}"
+        num /= 1024.0
+    return f"{num:.1f}Yi{suffix}"
 
 
 def load_hifigan_from_checkpoint(ckpt: dict, device) -> Tuple[HiFiGAN, HiFiGANConfig]:
     config: dict | HiFiGANConfig = ckpt["hyper_parameters"]["config"]
     if isinstance(config, dict):
         config = HiFiGANConfig(**config)
-    model = HiFiGAN(config).to(device)
+    if any(
+        (
+            key.startswith("mpd") or key.startswith("msd")
+            for key in ckpt["state_dict"].keys()
+        )
+    ):
+        model = HiFiGAN(config).to(device)
+    else:
+        model = HiFiGANGenerator(config).to(device)
     model.load_state_dict(ckpt["state_dict"])
     model.generator.eval()
     model.generator.remove_weight_norm()

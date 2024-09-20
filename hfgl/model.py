@@ -447,9 +447,33 @@ class MultiScaleDiscriminator(torch.nn.Module):
         return y_d_rs, y_d_gs, fmap_rs, fmap_gs
 
 
-class HiFiGAN(pl.LightningModule):
+class HiFiGANGenerator(pl.LightningModule):
+    """HiFiGAN Generator subclass used for storing generator checkpoints
+    for low-requirement model storage and inference.
+    """
+
     def __init__(self, config: dict | VocoderConfig):
         super().__init__()
+        if not isinstance(config, VocoderConfig):
+            config = VocoderConfig(**config)
+        self.config = config
+        self.generator = Generator(self.config)
+
+    def on_load_checkpoint(self, checkpoint):
+        """Deserialize the checkpoint hyperparameters.
+        Note, this shouldn't fail on different versions of pydantic anymore,
+        but it will fail on breaking changes to the config. We should catch those exceptions
+        and handle them appropriately."""
+        self.config = VocoderConfig(**checkpoint["hyper_parameters"]["config"])
+
+    def on_save_checkpoint(self, checkpoint):
+        """Serialize the checkpoint hyperparameters"""
+        checkpoint["hyper_parameters"]["config"] = self.config.model_checkpoint_dump()
+
+
+class HiFiGAN(HiFiGANGenerator):
+    def __init__(self, config: dict | VocoderConfig):
+        super().__init__(config)
         # Required by PyTorch Lightning for our manual optimization
         self.automatic_optimization = False
         # Because we serialize the configurations when saving checkpoints,
@@ -459,7 +483,6 @@ class HiFiGAN(pl.LightningModule):
         self.config = config
         self.mpd = MultiPeriodDiscriminator(config)
         self.msd = MultiScaleDiscriminator(config)
-        self.generator = Generator(config)
         self.save_hyperparameters()  # TODO: ignore=['specific keys'] - I should ignore some unnecessary/problem values
         self.update_config_settings()
         if self.config.model.istft_layer:
@@ -505,16 +528,13 @@ class HiFiGAN(pl.LightningModule):
     def forward(self, x):
         return self.generator(x)
 
-    def on_load_checkpoint(self, checkpoint):
-        """Deserialize the checkpoint hyperparameters.
-        Note, this shouldn't fail on different versions of pydantic anymore,
-        but it will fail on breaking changes to the config. We should catch those exceptions
-        and handle them appropriately."""
-        self.config = VocoderConfig(**checkpoint["hyper_parameters"]["config"])
-
-    def on_save_checkpoint(self, checkpoint):
-        """Serialize the checkpoint hyperparameters"""
-        checkpoint["hyper_parameters"]["config"] = self.config.model_checkpoint_dump()
+    def export(self, path: str):
+        """Save checkpoint to path"""
+        generator = HiFiGANGenerator(self.config)
+        generator.generator = self.generator
+        trainer = pl.Trainer()
+        trainer.strategy.connect(self)
+        trainer.save_checkpoint(path, weights_only=True)
 
     def configure_optimizers(self):
         generator_params = self.generator.parameters()
