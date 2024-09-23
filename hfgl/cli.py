@@ -67,7 +67,6 @@ def train(**kwargs):
 @app.command()
 def export(
     model_path: Path = typer.Argument(
-        None,
         exists=True,
         dir_okay=False,
         file_okay=True,
