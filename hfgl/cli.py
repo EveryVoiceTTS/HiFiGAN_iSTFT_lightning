@@ -130,7 +130,10 @@ def synthesize(
     ),
 ):
     """Given some Mel spectrograms and a trained model, generate some audio. i.e. perform *copy synthesis*"""
+    import sys
+
     import torch
+    from pydantic import ValidationError
     from scipy.io.wavfile import write
 
     from .utils import load_hifigan_from_checkpoint, synthesize_data
@@ -138,7 +141,11 @@ def synthesize(
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     checkpoint = torch.load(generator_path, map_location=device)
     data = torch.load(data_path, map_location=device)
-    vocoder_model, vocoder_config = load_hifigan_from_checkpoint(checkpoint, device)
+    try:
+        vocoder_model, vocoder_config = load_hifigan_from_checkpoint(checkpoint, device)
+    except (TypeError, ValidationError) as e:
+        logger.error(f"Unable to load {generator_path}: {e}")
+        sys.exit(1)
     wav, sr = synthesize_data(data, vocoder_model, vocoder_config)
     logger.info(f"Writing file {data_path}.wav")
     write(f"{data_path}.wav", sr, wav)

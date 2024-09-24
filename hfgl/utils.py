@@ -4,6 +4,7 @@ from typing import Tuple
 
 import numpy as np
 import torch
+from everyvoice.utils import pydantic_validation_error_shortener
 from everyvoice.utils.heavy import get_spectral_transform
 from loguru import logger
 
@@ -23,7 +24,15 @@ def sizeof_fmt(num, suffix="B"):
 def load_hifigan_from_checkpoint(ckpt: dict, device) -> Tuple[HiFiGAN, HiFiGANConfig]:
     config: dict | HiFiGANConfig = ckpt["hyper_parameters"]["config"]
     if isinstance(config, dict):
-        config = HiFiGANConfig(**config)
+        from pydantic import ValidationError
+
+        try:
+            config = HiFiGANConfig(**config)
+        except ValidationError as e:
+            logger.error(f"{pydantic_validation_error_shortener(e)}")
+            raise TypeError(
+                "Unable to load config.  Possible causes: is it really a VocoderConfig? or the correct version?"
+            )
     if any(
         (
             key.startswith("mpd") or key.startswith("msd")
