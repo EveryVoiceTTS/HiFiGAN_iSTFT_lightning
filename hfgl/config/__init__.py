@@ -1,7 +1,7 @@
 import math
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional
+from typing import Annotated, Any, Optional
 
 from everyvoice.config.preprocessing_config import PreprocessingConfig
 from everyvoice.config.shared_types import (
@@ -26,6 +26,9 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+
+# HiFiGANConfig's latest version number
+LATEST_VERSION: str = "1.0"
 
 
 # NOTE: We need to derive from both str and Enum if we want `HiFiGANResblock.one == "one"` to be True.
@@ -155,6 +158,14 @@ class HiFiGANTrainingConfig(BaseTrainingConfig):
 
 
 class HiFiGANConfig(BaseModelWithContact):
+    VERSION: Annotated[
+        str,
+        Field(
+            default_factory=lambda: LATEST_VERSION,
+            init_var=False,
+        ),
+    ]
+
     model: HiFiGANModelConfig = Field(
         default_factory=HiFiGANModelConfig,
         description="The model configuration settings.",
@@ -243,3 +254,23 @@ class HiFiGANConfig(BaseModelWithContact):
             )
 
         return self
+
+    @model_validator(mode="before")
+    @classmethod
+    def check_and_upgrade_checkpoint(cls, data: Any) -> Any:
+        """
+        Check model's compatibility and possibly upgrade.
+        """
+        from packaging.version import Version
+
+        ckpt_version = Version(data.get("VERSION", "0.0"))
+        if ckpt_version > Version(LATEST_VERSION):
+            raise ValueError(
+                "Your config was created with a newer version of EveryVoice, please update your software."
+            )
+        # Successively convert model checkpoints to newer version.
+        if ckpt_version < Version("1.0"):
+            # Converting to 1.0 just requires setting the VERSION field
+            data["VERSION"] = "1.0"
+
+        return data
