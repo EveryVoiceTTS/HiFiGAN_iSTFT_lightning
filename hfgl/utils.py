@@ -59,7 +59,7 @@ def synthesize_data(
     """Synthesize a batch of waveforms from spectral features
 
     Args:
-        data (Tensor): data tensor, expects output from feature prediction network to be size (b=batch_size, t=number_of_frames, k=n_mels)
+        data (Tensor): data tensor, expects output from feature prediction network to be size (b=batch_size, k=n_mels, t=number_of_frames,)
         ckpt (dict): HiFiGANLightning checkpoint, expects checkpoint to have a 'hyper_parameters.config' key and HiFiGANConfig object value as well as a 'state_dict' key with model weight as the value
     Returns:
         Tuple[np.ndarray, int]: a B, T array of the synthesized audio and the sampling rate
@@ -72,7 +72,7 @@ def synthesize_data(
             model.generator.post_n_fft // 4,
         ).to(data.device)
         with torch.no_grad():
-            mag, phase = model.generator(data.transpose(1, 2))
+            mag, phase = model.generator(data)
         # We can remove this once the fix for https://github.com/pytorch/pytorch/issues/119088 is merged
         if mag.device.type == "mps" or phase.device.type == "mps":
             logger.warning(
@@ -84,10 +84,9 @@ def synthesize_data(
         wavs = inverse_spectral_transform(mag * torch.exp(phase * 1j)).unsqueeze(-2)
     else:
         with torch.no_grad():
-            wavs = model.generator(data.transpose(1, 2))
-    # squeeze to remove the channel dimension
+            wavs = model.generator(data)
     return (
-        wavs.squeeze(1).cpu().numpy(),
+        wavs.cpu(),
         config.preprocessing.audio.output_sampling_rate,
     )
 
