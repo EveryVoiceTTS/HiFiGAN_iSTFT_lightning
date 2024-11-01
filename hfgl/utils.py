@@ -42,9 +42,12 @@ def load_hifigan_from_checkpoint(ckpt: dict, device) -> Tuple[HiFiGAN, HiFiGANCo
         model = HiFiGAN(config).to(device)
     else:
         model = HiFiGANGenerator(config).to(device)
+
+    ckpt = model.check_and_upgrade_checkpoint(ckpt)
     model.load_state_dict(ckpt["state_dict"])
     model.generator.eval()
     model.generator.remove_weight_norm()
+
     return model, config
 
 
