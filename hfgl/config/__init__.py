@@ -160,11 +160,8 @@ class HiFiGANTrainingConfig(BaseTrainingConfig):
 class HiFiGANConfig(BaseModelWithContact):
     VERSION: Annotated[
         str,
-        Field(
-            default_factory=lambda: LATEST_VERSION,
-            init_var=False,
-        ),
-    ]
+        Field(init_var=False),
+    ] = LATEST_VERSION
 
     model: HiFiGANModelConfig = Field(
         default_factory=HiFiGANModelConfig,
