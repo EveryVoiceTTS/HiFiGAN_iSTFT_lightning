@@ -74,7 +74,7 @@ def export(
         dir_okay=False,
         file_okay=True,
         help="The path to a trained EveryVoice spec-to-wav model",
-        autocompletion=complete_path,
+        shell_complete=complete_path,
     ),
     output_path: Path = typer.Option(
         "exported.ckpt",
@@ -84,7 +84,7 @@ def export(
         dir_okay=False,
         file_okay=True,
         help="The path to a trained EveryVoice spec-to-wav model",
-        autocompletion=complete_path,
+        shell_complete=complete_path,
     ),
 ):
     import os
@@ -120,7 +120,7 @@ def synthesize(
         dir_okay=False,
         file_okay=True,
         help="The path to a torch file containing time-oriented spectral features [T (frames), K (Mel bands)]",
-        autocompletion=complete_path,
+        shell_complete=complete_path,
     ),
     generator_path: Path = typer.Option(
         ...,
@@ -130,7 +130,7 @@ def synthesize(
         dir_okay=False,
         file_okay=True,
         help="The path to a trained EveryVoice spec-to-wav model",
-        autocompletion=complete_path,
+        shell_complete=complete_path,
     ),
 ):
     """Given some Mel spectrograms and a trained model, generate some audio. i.e. perform *copy synthesis*"""
