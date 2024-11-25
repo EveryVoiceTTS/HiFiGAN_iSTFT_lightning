@@ -103,6 +103,8 @@ def export(
     del vocoder_ckpt["callbacks"]
     del vocoder_ckpt["optimizer_states"]
     del vocoder_ckpt["lr_schedulers"]
+    if "model_info" in vocoder_ckpt:
+        vocoder_ckpt["model_info"]["name"] = "HiFiGANGenerator"
     torch.save(vocoder_ckpt, output_path)
     new_size = sizeof_fmt(os.path.getsize(output_path))
     logger.info(
