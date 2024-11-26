@@ -1,1 +1,1 @@
-everyvoice==0.1.*
+everyvoice==0.2.*
