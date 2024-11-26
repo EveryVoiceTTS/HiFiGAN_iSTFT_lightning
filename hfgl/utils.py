@@ -21,7 +21,9 @@ def sizeof_fmt(num, suffix="B"):
     return f"{num:.1f}Yi{suffix}"
 
 
-def load_hifigan_from_checkpoint(ckpt: dict, device) -> Tuple[HiFiGAN, HiFiGANConfig]:
+def load_hifigan_from_checkpoint(
+    ckpt: dict, device
+) -> Tuple[HiFiGAN | HiFiGANGenerator, HiFiGANConfig]:
     config: dict | HiFiGANConfig = ckpt["hyper_parameters"]["config"]
     if isinstance(config, dict):
         from pydantic import ValidationError
