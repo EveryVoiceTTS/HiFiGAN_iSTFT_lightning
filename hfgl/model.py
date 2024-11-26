@@ -1,5 +1,6 @@
 import itertools
 import math
+from typing import Any
 
 import pytorch_lightning as pl
 import torch
@@ -598,6 +599,23 @@ class HiFiGAN(HiFiGANGenerator):
         trainer = pl.Trainer()
         trainer.strategy.connect(self)
         trainer.save_checkpoint(path, weights_only=True)
+
+    @classmethod
+    def convert_ckpt_to_generator(cls, vocoder_ckpt: Any) -> None:
+        """Convert vocoder_ckpt to be just a HiFiGanGenerator checkpoint,
+        deleting everything not needed for inference.
+
+        Warning: destroys the parts of vocoder_ckpt required to continue training."""
+
+        for k in list(vocoder_ckpt["state_dict"].keys()):
+            if not k.startswith("generator"):
+                del vocoder_ckpt["state_dict"][k]
+        del vocoder_ckpt["loops"]
+        del vocoder_ckpt["callbacks"]
+        del vocoder_ckpt["optimizer_states"]
+        del vocoder_ckpt["lr_schedulers"]
+        if "model_info" in vocoder_ckpt:
+            vocoder_ckpt["model_info"]["name"] = "HiFiGANGenerator"
 
     def configure_optimizers(self):
         generator_params = self.generator.parameters()
