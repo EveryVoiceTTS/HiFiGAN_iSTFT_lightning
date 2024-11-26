@@ -14,7 +14,8 @@ from merge_args import merge_args
 app = typer.Typer(
     pretty_exceptions_show_locals=False,
     context_settings={"help_option_names": ["-h", "--help"]},
-    help="A PyTorch Lightning implementation of the HiFiGAN and iSTFT-Net vocoders",
+    rich_markup_mode="markdown",
+    help="A PyTorch Lightning implementation of the HiFiGAN and iSTFT-Net vocoders, i.e., spec-to-wav models.",
 )
 
 
@@ -34,6 +35,7 @@ def preprocess(
     ),
     **kwargs,
 ):
+    """Preprocess your data"""
     with spinner():
         from everyvoice.base_cli.helpers import preprocess_base_command
 
@@ -49,6 +51,7 @@ def preprocess(
 @app.command()
 @merge_args(train_base_command_interface)
 def train(**kwargs):
+    """Train your spec-to-wav model"""
     with spinner():
         from everyvoice.base_cli.helpers import train_base_command
 
@@ -67,7 +70,26 @@ def train(**kwargs):
     )
 
 
-@app.command()
+HFG_EXPORT_SHORT_HELP = (
+    "Export and optimize a spec-to-wav model checkpoint for inference"
+)
+HFG_EXPORT_LONG_HELP = """
+    Export your spec-to-wav model.
+
+    # Important!
+
+    This will reduce the size of your checkpoint but it means that the exported checkpoint cannot be resumed for training, it can only be used for inference/synthesis.
+
+    For example:
+
+    **everyvoice export spec-to-wav <path_to_ckpt> <output_path>**
+    """
+
+
+@app.command(
+    short_help=HFG_EXPORT_SHORT_HELP,
+    help=HFG_EXPORT_LONG_HELP,
+)
 def export(
     model_path: Path = typer.Argument(
         exists=True,
