@@ -170,19 +170,14 @@ def synthesize(
     if time_oriented:
         data = data.transpose(0, 1)
     data_size = data.size()
-    if (
-        checkpoint["hyper_parameters"]["config"]["preprocessing"]["audio"]["n_mels"]
-        not in data_size
-    ):
+    config_n_mels = checkpoint["hyper_parameters"]["config"]["preprocessing"]["audio"]["n_mels"]
+    if (config_n_mels not in data_size):
         raise ValueError(
-            f"Your model expects a spectrogram of dimensions [K (Mel bands), T (frames)] where K == {checkpoint['hyper_parameters']['config']['preprocessing']['audio']['n_mels']} but you provided a tensor of size {data_size}"
+            f"Your model expects a spectrogram of dimensions [K (Mel bands), T (frames)] where K == {config_n_mels} but you provided a tensor of size {data_size}"
         )
-    if (
-        data_size[0]
-        != checkpoint["hyper_parameters"]["config"]["preprocessing"]["audio"]["n_mels"]
-    ):
+    if (data_size[0] != config_n_mels):
         raise ValueError(
-            f"We expected the first dimension of your Mel spectrogram to correspond with the number of Mel bands declared by your model ({checkpoint['hyper_parameters']['config']['preprocessing']['audio']['n_mels']}). Instead, we found you model has the dimensions {data_size}. If your spectrogram is time-oriented, please re-run this command with the '--time-oriented' flag."
+            f"We expected the first dimension of your Mel spectrogram to correspond with the number of Mel bands declared by your model ({config_n_mels}). Instead, we found you model has the dimensions {data_size}. If your spectrogram is time-oriented, please re-run this command with the '--time-oriented' flag."
         )
     try:
         vocoder_model, vocoder_config = load_hifigan_from_checkpoint(checkpoint, device)
