@@ -118,7 +118,9 @@ def export(
         from .utils import sizeof_fmt
 
     orig_size = sizeof_fmt(os.path.getsize(model_path))
-    vocoder_ckpt = torch.load(model_path, map_location=torch.device("cpu"))
+    vocoder_ckpt = torch.load(
+        model_path, map_location=torch.device("cpu"), weights_only=True
+    )
     HiFiGAN.convert_ckpt_to_generator(vocoder_ckpt)
     torch.save(vocoder_ckpt, output_path)
     new_size = sizeof_fmt(os.path.getsize(output_path))
@@ -165,17 +167,20 @@ def synthesize(
         from .utils import load_hifigan_from_checkpoint, synthesize_data
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    checkpoint = torch.load(generator_path, map_location=device)
-    data = torch.load(data_path, map_location=device)
+    checkpoint = torch.load(generator_path, map_location=device, weights_only=True)
+    # TODO figure out if we can convert our prepared data format to use weights only
+    data = torch.load(data_path, map_location=device, weights_only=False)
     if time_oriented:
         data = data.transpose(0, 1)
     data_size = data.size()
-    config_n_mels = checkpoint["hyper_parameters"]["config"]["preprocessing"]["audio"]["n_mels"]
-    if (config_n_mels not in data_size):
+    config_n_mels = checkpoint["hyper_parameters"]["config"]["preprocessing"]["audio"][
+        "n_mels"
+    ]
+    if config_n_mels not in data_size:
         raise ValueError(
             f"Your model expects a spectrogram of dimensions [K (Mel bands), T (frames)] where K == {config_n_mels} but you provided a tensor of size {data_size}"
         )
-    if (data_size[0] != config_n_mels):
+    if data_size[0] != config_n_mels:
         raise ValueError(
             f"We expected the first dimension of your Mel spectrogram to correspond with the number of Mel bands declared by your model ({config_n_mels}). Instead, we found you model has the dimensions {data_size}. If your spectrogram is time-oriented, please re-run this command with the '--time-oriented' flag."
         )
