@@ -67,7 +67,8 @@ class SpecDataset(Dataset):
                     language,
                     f"spec-{self.output_sampling_rate}-{self.config.preprocessing.audio.spec_type}.pt",
                 ]
-            )
+            ),
+            weights_only=True,
         )  # [mel_bins, frames]
         if self.finetune:
             # If finetuning, use the synthesized spectral features
@@ -81,7 +82,8 @@ class SpecDataset(Dataset):
                         language,
                         f"spec-pred-{self.input_sampling_rate}-{self.config.preprocessing.audio.spec_type}.pt",
                     ]
-                )
+                ),
+                weights_only=True,
             ).transpose(0, 1)
         else:
             x = torch.load(
@@ -94,7 +96,8 @@ class SpecDataset(Dataset):
                         language,
                         f"spec-{self.input_sampling_rate}-{self.config.preprocessing.audio.spec_type}.pt",
                     ]
-                )
+                ),
+                weights_only=True,
             )  # [mel_bins, frames]
         if self.use_segments:
             x, y, y_mel = get_all_segments(
