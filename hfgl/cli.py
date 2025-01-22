@@ -148,7 +148,7 @@ def synthesize(
         exists=True,
         dir_okay=False,
         file_okay=True,
-        help="The path to a trained EveryVoice spec-to-wav model",
+        help="The path to a trained EveryVoice spec-to-wav model (i.e., a vocoder)",
         shell_complete=complete_path,
     ),
     time_oriented: bool = typer.Option(
@@ -156,7 +156,7 @@ def synthesize(
         help="By default, EveryVoice assumes your spectrograms are of the shape [K (Mel bands), T (frames)]. If instead your spectrograms are of shape [T (frames), K (Mel bands)] then please add this flag to transpose the dimensions.",
     ),
 ):
-    """Given some Mel spectrograms and a trained model, generate some audio. i.e. perform *copy synthesis*"""
+    """Given some Mel spectrograms and a trained model, generate some audio. i.e. perform *copy synthesis*."""
     import sys
 
     with spinner():
