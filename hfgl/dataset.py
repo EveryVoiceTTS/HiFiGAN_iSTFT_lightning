@@ -84,7 +84,7 @@ class SpecDataset(Dataset):
                     ]
                 ),
                 weights_only=True,
-            ).transpose(0, 1)
+            )
         else:
             x = torch.load(
                 self.preprocessed_dir
