@@ -3,7 +3,6 @@ from pathlib import Path
 
 import typer
 from everyvoice.base_cli.interfaces import (
-    complete_path,
     preprocess_base_command_interface,
     train_base_command_interface,
 )
@@ -96,7 +95,6 @@ def export(
         dir_okay=False,
         file_okay=True,
         help="The path to a trained EveryVoice spec-to-wav model",
-        shell_complete=complete_path,
     ),
     output_path: Path = typer.Option(
         "exported.ckpt",
@@ -106,7 +104,6 @@ def export(
         dir_okay=False,
         file_okay=True,
         help="The path to a trained EveryVoice spec-to-wav model",
-        shell_complete=complete_path,
     ),
 ):
     import os
@@ -139,7 +136,6 @@ def synthesize(
         dir_okay=False,
         file_okay=True,
         help="The path to a torch file containing Mel band-oriented spectral features [K (Mel bands), T (frames)]",
-        shell_complete=complete_path,
     ),
     generator_path: Path = typer.Option(
         ...,
@@ -149,7 +145,6 @@ def synthesize(
         dir_okay=False,
         file_okay=True,
         help="The path to a trained EveryVoice spec-to-wav model (i.e., a vocoder)",
-        shell_complete=complete_path,
     ),
     time_oriented: bool = typer.Option(
         False,
