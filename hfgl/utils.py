@@ -35,6 +35,7 @@ def load_hifigan_from_checkpoint(
             raise TypeError(
                 "Unable to load config.  Possible causes: is it really a VocoderConfig? or the correct version?"
             )
+    model: HiFiGAN | HiFiGANGenerator
     if any(
         (
             key.startswith("mpd") or key.startswith("msd")

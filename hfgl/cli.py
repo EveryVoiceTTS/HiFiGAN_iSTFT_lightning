@@ -184,7 +184,7 @@ def synthesize(
     except (TypeError, ValidationError) as e:
         logger.error(f"Unable to load {generator_path}: {e}")
         sys.exit(1)
-    wav, sr = synthesize_data(data, vocoder_model, vocoder_config)
+    wav, sr = synthesize_data(data, vocoder_model, vocoder_config)  # type: ignore[arg-type]
     logger.info(f"Writing file {data_path}.wav")
     torchaudio.save(
         f"{data_path}.wav", wav, sr, format="wav", encoding="PCM_S", bits_per_sample=16
