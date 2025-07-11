@@ -186,7 +186,7 @@ class HiFiGANConfig(BaseModelWithContact):
     )
 
     @model_validator(mode="before")  # type: ignore
-    def load_partials(self: dict[Any, Any], info: ValidationInfo):
+    def load_partials(self: dict[Any, Any], info: ValidationInfo):  # type: ignore[misc]
         config_path = (
             info.context.get("config_path", None) if info.context is not None else None
         )
