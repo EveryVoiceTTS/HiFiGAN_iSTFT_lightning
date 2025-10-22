@@ -66,41 +66,43 @@ class HiFiGANTrainTypes(str, Enum):
 
 class HiFiGANModelConfig(ConfigModel):
     resblock: HiFiGANResblock = Field(
-        HiFiGANResblock.one,
+        default=HiFiGANResblock.one,
         description="Which resblock to use. See Kong et. al. 2020: https://arxiv.org/abs/2010.05646",
     )
     upsample_rates: list[int] = Field(
-        [8, 8, 2, 2],
+        default=[8, 8, 2, 2],
         description="The stride of each convolutional layer in the upsampling module.",
     )
     upsample_kernel_sizes: list[int] = Field(
-        [16, 16, 4, 4],
+        default=[16, 16, 4, 4],
         description="The kernel size of each convolutional layer in the upsampling module.",
     )
     upsample_initial_channel: int = Field(
-        512,
+        default=512,
         description="The number of dimensions to project the Mel inputs to before being passed to the resblock.",
     )
     resblock_kernel_sizes: list[int] = Field(
-        [3, 7, 11],
+        default=[3, 7, 11],
         description="The kernel size of each convolutional layer in the resblock.",
     )
     resblock_dilation_sizes: list[list[int]] = Field(
-        [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
+        default=[[1, 3, 5], [1, 3, 5], [1, 3, 5]],
         description="The dilations of each convolution in each layer of the resblock.",
     )
     activation_function: PossiblySerializedCallable = Field(
-        original_hifigan_leaky_relu, description="The activation function to use."
+        default=original_hifigan_leaky_relu,
+        description="The activation function to use.",
     )
     istft_layer: bool = Field(
-        False,
+        default=False,
         description="Whether to predict phase and magnitude values and use an inverse Short-Time Fourier Transform instead of predicting a waveform directly. See Kaneko et. al. 2022: https://arxiv.org/abs/2203.02395",
     )
     msd_layers: int = Field(
-        3, description="The number of layers to use in the Multi-Scale Discriminator."
+        default=3,
+        description="The number of layers to use in the Multi-Scale Discriminator.",
     )
     mpd_layers: list[int] = Field(
-        [2, 3, 5, 7, 11],
+        default=[2, 3, 5, 7, 11],
         description="The size of each layer in the Multi-Period Discriminator.",
     )
 
@@ -120,11 +122,11 @@ class HiFiGANModelConfig(ConfigModel):
 
 class HiFiGANTrainingConfig(BaseTrainingConfig):
     generator_warmup_steps: int = Field(
-        0,
+        default=0,
         description="The number of steps to run through before activating the discriminators.",
     )
     gan_type: HiFiGANTrainTypes = Field(
-        HiFiGANTrainTypes.original,
+        default=HiFiGANTrainTypes.original,
         description="The type of GAN to use. Can be set to either 'original' for a vanilla GAN, or 'wgan' for a Wasserstein GAN that clips gradients.",
     )
     optimizer: AdamOptimizer | AdamWOptimizer | RMSOptimizer = Field(
@@ -132,14 +134,14 @@ class HiFiGANTrainingConfig(BaseTrainingConfig):
         description="Configuration settings for the optimizer.",
     )
     wgan_clip_value: float = Field(
-        0.01, description="The gradient clip value when gan_type='wgan'."
+        default=0.01, description="The gradient clip value when gan_type='wgan'."
     )
     use_weighted_sampler: bool = Field(
-        False,
+        default=False,
         description="Whether to use a sampler which oversamples from the minority language or speaker class for balanced training.",
     )
     finetune: bool = Field(
-        False,
+        default=False,
         description="Whether to read spectrograms from 'preprocessed/synthesized_spec' instead of 'preprocessed/spec'. This is used when finetuning a pretrained spec-to-wav (vocoder) model using the outputs of a trained text-to-spec (feature prediction network) model.",
     )
 
@@ -168,21 +170,21 @@ class HiFiGANConfig(BaseModelWithContact):
         description="The model configuration settings.",
     )
     path_to_model_config_file: Optional[FilePath] = Field(
-        None, description="The path of a model configuration file."
+        default=None, description="The path of a model configuration file."
     )
     training: HiFiGANTrainingConfig = Field(
         default_factory=HiFiGANTrainingConfig,
         description="The training configuration hyperparameters.",
     )
     path_to_training_config_file: Optional[FilePath] = Field(
-        None, description="The path of a training configuration file."
+        default=None, description="The path of a training configuration file."
     )
     preprocessing: PreprocessingConfig = Field(
         default_factory=PreprocessingConfig,
         description="The preprocessing configuration, including information about audio settings.",
     )
     path_to_preprocessing_config_file: Optional[FilePath] = Field(
-        None, description="The path of a preprocessing configuration file."
+        default=None, description="The path of a preprocessing configuration file."
     )
 
     @model_validator(mode="before")  # type: ignore
