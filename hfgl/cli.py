@@ -6,6 +6,8 @@ import typer
 from everyvoice.base_cli.interfaces import (
     preprocess_base_command_interface,
     train_base_command_interface,
+    typer_file_argument,
+    typer_file_option,
 )
 from everyvoice.utils import spinner
 from loguru import logger
@@ -93,22 +95,15 @@ HFG_EXPORT_LONG_HELP = """
 def export(
     model_path: Annotated[
         Path,
-        typer.Argument(
-            exists=True,
-            dir_okay=False,
-            file_okay=True,
-            help="The path to a trained EveryVoice spec-to-wav model",
-        ),
+        typer_file_argument(help="The path to a trained EveryVoice spec-to-wav model"),
     ],
     output_path: Annotated[
         Path,
-        typer.Option(
+        typer_file_option(
             "--output",
             "-o",
-            exists=False,
-            dir_okay=False,
-            file_okay=True,
             help="The path to a trained EveryVoice spec-to-wav model",
+            exists=False,
         ),
     ] = Path("exported.ckpt"),
 ):
@@ -136,23 +131,17 @@ def export(
 def synthesize(
     data_path: Annotated[
         Path,
-        typer.Option(
+        typer_file_option(
             "--input",
             "-i",
-            exists=True,
-            dir_okay=False,
-            file_okay=True,
             help="The path to a torch file containing Mel band-oriented spectral features [K (Mel bands), T (frames)]",
         ),
     ],
     generator_path: Annotated[
         Path,
-        typer.Option(
+        typer_file_option(
             "--model",
             "-m",
-            exists=True,
-            dir_okay=False,
-            file_okay=True,
             help="The path to a trained EveryVoice spec-to-wav model (i.e., a vocoder)",
         ),
     ],
