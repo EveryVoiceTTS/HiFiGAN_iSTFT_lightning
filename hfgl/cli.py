@@ -1,5 +1,6 @@
 from enum import Enum
 from pathlib import Path
+from typing import Annotated
 
 import typer
 from everyvoice.base_cli.interfaces import (
@@ -128,28 +129,34 @@ def export(
 
 @app.command()
 def synthesize(
-    data_path: Path = typer.Option(
-        ...,
-        "--input",
-        "-i",
-        exists=True,
-        dir_okay=False,
-        file_okay=True,
-        help="The path to a torch file containing Mel band-oriented spectral features [K (Mel bands), T (frames)]",
-    ),
-    generator_path: Path = typer.Option(
-        ...,
-        "--model",
-        "-m",
-        exists=True,
-        dir_okay=False,
-        file_okay=True,
-        help="The path to a trained EveryVoice spec-to-wav model (i.e., a vocoder)",
-    ),
-    time_oriented: bool = typer.Option(
-        False,
-        help="By default, EveryVoice assumes your spectrograms are of the shape [K (Mel bands), T (frames)]. If instead your spectrograms are of shape [T (frames), K (Mel bands)] then please add this flag to transpose the dimensions.",
-    ),
+    data_path: Annotated[
+        Path,
+        typer.Option(
+            "--input",
+            "-i",
+            exists=True,
+            dir_okay=False,
+            file_okay=True,
+            help="The path to a torch file containing Mel band-oriented spectral features [K (Mel bands), T (frames)]",
+        ),
+    ],
+    generator_path: Annotated[
+        Path,
+        typer.Option(
+            "--model",
+            "-m",
+            exists=True,
+            dir_okay=False,
+            file_okay=True,
+            help="The path to a trained EveryVoice spec-to-wav model (i.e., a vocoder)",
+        ),
+    ],
+    time_oriented: Annotated[
+        bool,
+        typer.Option(
+            help="By default, EveryVoice assumes your spectrograms are of the shape [K (Mel bands), T (frames)]. If instead your spectrograms are of shape [T (frames), K (Mel bands)] then please add this flag to transpose the dimensions.",
+        ),
+    ] = False,
 ):
     """Given some Mel spectrograms and a trained model, generate some audio. i.e. perform *copy synthesis*."""
     import sys
