@@ -91,21 +91,26 @@ HFG_EXPORT_LONG_HELP = """
     help=HFG_EXPORT_LONG_HELP,
 )
 def export(
-    model_path: Path = typer.Argument(
-        exists=True,
-        dir_okay=False,
-        file_okay=True,
-        help="The path to a trained EveryVoice spec-to-wav model",
-    ),
-    output_path: Path = typer.Option(
-        "exported.ckpt",
-        "--output",
-        "-o",
-        exists=False,
-        dir_okay=False,
-        file_okay=True,
-        help="The path to a trained EveryVoice spec-to-wav model",
-    ),
+    model_path: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            dir_okay=False,
+            file_okay=True,
+            help="The path to a trained EveryVoice spec-to-wav model",
+        ),
+    ],
+    output_path: Annotated[
+        Path,
+        typer.Option(
+            "--output",
+            "-o",
+            exists=False,
+            dir_okay=False,
+            file_okay=True,
+            help="The path to a trained EveryVoice spec-to-wav model",
+        ),
+    ] = Path("exported.ckpt"),
 ):
     import os
 
