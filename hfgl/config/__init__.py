@@ -14,10 +14,7 @@ from everyvoice.config.shared_types import (
     init_context,
 )
 from everyvoice.config.utils import PossiblySerializedCallable, load_partials
-from everyvoice.utils import (
-    load_config_from_json_or_yaml_path,
-    original_hifigan_leaky_relu,
-)
+from everyvoice.utils import load_config_from_json_or_yaml_path
 from pydantic import (
     Field,
     FilePath,
@@ -90,7 +87,8 @@ class HiFiGANModelConfig(ConfigModel):
         description="The dilations of each convolution in each layer of the resblock.",
     )
     activation_function: PossiblySerializedCallable = Field(
-        default=original_hifigan_leaky_relu,
+        default="everyvoice.utils.original_hifigan_leaky_relu",
+        validate_default=True,
         description="The activation function to use.",
     )
     istft_layer: bool = Field(
