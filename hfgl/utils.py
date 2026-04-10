@@ -1,6 +1,5 @@
 import math
 import random
-from typing import Tuple
 
 import numpy as np
 import torch
@@ -23,7 +22,7 @@ def sizeof_fmt(num, suffix="B"):
 
 def load_hifigan_from_checkpoint(
     ckpt: dict, device
-) -> Tuple[HiFiGAN | HiFiGANGenerator, HiFiGANConfig]:
+) -> tuple[HiFiGAN | HiFiGANGenerator, HiFiGANConfig]:
     config: dict | HiFiGANConfig = ckpt["hyper_parameters"]["config"]
     if isinstance(config, dict):
         from pydantic import ValidationError
@@ -56,14 +55,14 @@ def load_hifigan_from_checkpoint(
 
 def synthesize_data(
     data: torch.Tensor, model: HiFiGAN, config: HiFiGANConfig
-) -> Tuple[np.ndarray, int]:
+) -> tuple[np.ndarray, int]:
     """Synthesize a batch of waveforms from spectral features
 
     Args:
         data (Tensor): data tensor, expects output from feature prediction network to be size (b=batch_size, k=n_mels, t=number_of_frames,)
         ckpt (dict): HiFiGANLightning checkpoint, expects checkpoint to have a 'hyper_parameters.config' key and HiFiGANConfig object value as well as a 'state_dict' key with model weight as the value
     Returns:
-        Tuple[np.ndarray, int]: a B, T array of the synthesized audio and the sampling rate
+        tuple[np.ndarray, int]: a B, T array of the synthesized audio and the sampling rate
     """
     if config.model.istft_layer:
         inverse_spectral_transform = get_spectral_transform(
