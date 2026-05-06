@@ -97,7 +97,7 @@ You can install our standard Git hooks by running these commands in your sandbox
 
 ```sh
 pip install -e '.[dev]'
-pre-commit install
+prek install
 gitlint install-hook
 ```
 
