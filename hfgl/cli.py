@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+from everyvoice.base_cli import default_typer_args
 from everyvoice.base_cli.interfaces import (
     preprocess_base_command_interface,
     train_base_command_interface,
@@ -14,9 +15,7 @@ from loguru import logger
 from merge_args import merge_args
 
 app = typer.Typer(
-    pretty_exceptions_show_locals=False,
-    context_settings={"help_option_names": ["-h", "--help"]},
-    rich_markup_mode="markdown",
+    **default_typer_args,
     help="A PyTorch Lightning implementation of the HiFiGAN and iSTFT-Net vocoders, i.e., spec-to-wav models.",
 )
 
