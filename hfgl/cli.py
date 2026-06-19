@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
-from everyvoice.base_cli import default_typer_args
+from everyvoice.base_cli import command, default_typer_args
 from everyvoice.base_cli.interfaces import (
     preprocess_base_command_interface,
     train_base_command_interface,
@@ -25,7 +25,7 @@ class PreprocessCategories(str, Enum):
     spec = "spec"
 
 
-@app.command()
+@command(app)
 @merge_args(preprocess_base_command_interface)
 def preprocess(
     steps: list[PreprocessCategories] = typer.Option(
@@ -49,7 +49,7 @@ def preprocess(
     )
 
 
-@app.command()
+@command(app)
 @merge_args(train_base_command_interface)
 def train(**kwargs):
     """Train your spec-to-wav model"""
@@ -87,7 +87,8 @@ HFG_EXPORT_LONG_HELP = """
     """
 
 
-@app.command(
+@command(
+    app,
     short_help=HFG_EXPORT_SHORT_HELP,
     help=HFG_EXPORT_LONG_HELP,
 )
@@ -126,7 +127,7 @@ def export(
     )
 
 
-@app.command()
+@command(app)
 def synthesize(
     data_path: Annotated[
         Path,
