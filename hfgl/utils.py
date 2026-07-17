@@ -3,9 +3,9 @@ import random
 
 import numpy as np
 import torch
+from everyvoice import logger
 from everyvoice.utils import pydantic_validation_error_shortener
 from everyvoice.utils.heavy import get_spectral_transform
-from loguru import logger
 
 from .config import HiFiGANConfig
 from .model import HiFiGAN, HiFiGANGenerator

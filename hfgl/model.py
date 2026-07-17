@@ -6,13 +6,13 @@ import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from everyvoice import logger
 from everyvoice.model.vocoder.config import VocoderConfig
 from everyvoice.utils import plot_spectrogram
 from everyvoice.utils.heavy import (
     dynamic_range_compression_torch,
     get_spectral_transform,
 )
-from loguru import logger
 from pydantic import ValidationError
 from torch.nn import AvgPool1d, Conv1d, Conv2d, ConvTranspose1d
 from torch.nn.utils import spectral_norm
@@ -489,7 +489,7 @@ class HiFiGANGenerator(pl.LightningModule):
         ckpt_model_type = model_info.get("name", "MISSING_TYPE")
         if ckpt_model_type != self.__class__.__name__:
             raise TypeError(
-                f"""Wrong model type ({ckpt_model_type}), we are expecting a '{ self.__class__.__name__ }' model"""
+                f"""Wrong model type ({ckpt_model_type}), we are expecting a '{self.__class__.__name__}' model"""
             )
 
         ckpt_version = Version(model_info.get("version", "0.0"))
