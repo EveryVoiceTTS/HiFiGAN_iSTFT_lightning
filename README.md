@@ -1,12 +1,7 @@
 # HiFiGAN & iSTFT-Net Vocoder written in PyTorch Lightning
 
-<!-- [![codecov](https://codecov.io/gh/roedoejet/g2p/branch/master/graph/badge.svg)](https://codecov.io/gh/roedoejet/g2p) -->
-<!-- [![Build Status](https://github.com/roedoejet/g2p/actions/workflows/tests.yml/badge.svg)](https://github.com/roedoejet/g2p/actions) -->
-<!-- [![PyPI package](https://img.shields.io/pypi/v/hfgl.svg)](https://pypi.org/project/g2p/) -->
 [![license](https://img.shields.io/badge/Licence-MIT-green)](LICENSE)
-[![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square)](https://github.com/EveryVoiceTTS/HiFiGAN_iSTFT_lightning)
-
-🚧 Under Construction! This repo is not expected to work fully. Please check back later for a stable release. 🚧
+![beta](https://img.shields.io/badge/beta-grey)
 
 > A PyTorch Lightning implementation of the HiFiGAN and iSTFT-Net vocoders
 
