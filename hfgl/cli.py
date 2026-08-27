@@ -36,7 +36,10 @@ def preprocess(
     ),
     **kwargs,
 ):
-    """Preprocess your data"""
+    """Preprocess data for a HiFiGAN spec-to-wav model.
+
+    **everyvoice preprocess spec-to-wav config/everyvoice-spec-to-wav.yaml**
+    """
     with spinner():
         from everyvoice.base_cli.helpers import preprocess_base_command
 
