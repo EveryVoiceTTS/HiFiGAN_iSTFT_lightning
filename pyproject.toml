@@ -30,7 +30,7 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Topic :: Multimedia :: Sound/Audio :: Speech",
 ]
-dependencies = ["everyvoice"]
+dependencies = ["everyvoice==0.5.0"]
 
 [project.scripts]
 hfgl = "hfgl.cli:app"
