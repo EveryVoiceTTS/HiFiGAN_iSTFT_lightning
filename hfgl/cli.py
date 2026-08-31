@@ -1,3 +1,4 @@
+import multiprocessing as mp
 from enum import Enum
 from pathlib import Path
 from typing import Annotated
@@ -6,13 +7,19 @@ import typer
 from everyvoice import logger
 from everyvoice.base_cli import command, default_typer_args
 from everyvoice.base_cli.interfaces import (
-    preprocess_base_command_interface,
-    train_base_command_interface,
+    AcceleratorOption,
+    ConfigArgsOption,
+    ConfigFileArgument,
+    CPUsOption,
+    DebugFlag,
+    DevicesOption,
+    NodesOption,
+    OverwriteFlag,
+    StrategyOption,
     typer_file_argument,
     typer_file_option,
 )
 from everyvoice.utils import spinner
-from merge_args import merge_args
 
 app = typer.Typer(
     **default_typer_args,
@@ -25,16 +32,23 @@ class PreprocessCategories(str, Enum):
     spec = "spec"
 
 
+StepsOption = typer.Option(
+    "-s",
+    "--steps",
+    help="Which steps of the preprocessor to use. If none are provided, all steps will be performed.",
+)
+
+
 @command(app)
-@merge_args(preprocess_base_command_interface)
 def preprocess(
-    steps: list[PreprocessCategories] = typer.Option(
-        [cat.value for cat in PreprocessCategories],
-        "-s",
-        "--steps",
-        help="Which steps of the preprocessor to use. If none are provided, all steps will be performed.",
+    config_file: Annotated[Path, ConfigFileArgument],
+    steps: Annotated[list[PreprocessCategories], StepsOption] = list(
+        PreprocessCategories
     ),
-    **kwargs,
+    config_args: Annotated[list[str], ConfigArgsOption] = [],
+    cpus: Annotated[int, CPUsOption] = min(4, mp.cpu_count()),
+    overwrite: Annotated[bool, OverwriteFlag] = False,
+    debug: Annotated[bool, DebugFlag] = False,
 ):
     """Preprocess data for a HiFiGAN spec-to-wav model.
 
@@ -48,13 +62,23 @@ def preprocess(
     preprocess_base_command(
         model_config=HiFiGANConfig,
         steps=[step.name for step in steps],
-        **kwargs,
+        config_file=config_file,
+        config_args=config_args,
+        cpus=cpus,
+        overwrite=overwrite,
+        debug=debug,
     )
 
 
 @command(app)
-@merge_args(train_base_command_interface)
-def train(**kwargs):
+def train(
+    config_file: Annotated[Path, ConfigFileArgument],
+    config_args: Annotated[list[str], ConfigArgsOption] = [],
+    accelerator: Annotated[str, AcceleratorOption] = "auto",
+    devices: Annotated[str, DevicesOption] = "auto",
+    nodes: Annotated[int, NodesOption] = 1,
+    strategy: Annotated[str, StrategyOption] = "ddp",
+):
     """Train your spec-to-wav model"""
     with spinner():
         from everyvoice.base_cli.helpers import train_base_command
@@ -70,7 +94,12 @@ def train(**kwargs):
         monitor="validation/mel_spec_error",
         # We can't do this automatically with Lightning, so we do it manually in model.py
         gradient_clip_val=None,
-        **kwargs,
+        config_file=config_file,
+        config_args=config_args,
+        accelerator=accelerator,
+        devices=devices,
+        nodes=nodes,
+        strategy=strategy,
     )
 
 
