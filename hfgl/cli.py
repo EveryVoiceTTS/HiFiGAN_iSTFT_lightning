@@ -38,12 +38,20 @@ def preprocess(
 ):
     """Preprocess your data"""
     with spinner():
-        from everyvoice.base_cli.helpers import preprocess_base_command
+        from everyvoice.base_cli.helpers import (
+            load_config_base_command,
+            preprocess_base_command,
+        )
 
         from .config import HiFiGANConfig
 
-    preprocess_base_command(
+    config = load_config_base_command(
         model_config=HiFiGANConfig,
+        config_file=kwargs.pop("config_file"),
+        config_args=kwargs.pop("config_args"),
+    )
+    preprocess_base_command(
+        config=config,
         steps=[step.name for step in steps],
         **kwargs,
     )
