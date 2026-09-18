@@ -46,7 +46,8 @@ def preprocess(
     """
 
     config = core.load_config(
-        config_file=kwargs.pop("config_file"), config_args=kwargs.pop("config_args")
+        config_file=kwargs.pop("config_file"),
+        config_args=kwargs.pop("config_args"),
     )
     core.preprocess(config=config, steps=[step.name for step in steps], **kwargs)
 
@@ -59,30 +60,12 @@ def train(**kwargs):
     For example:
 
     **hfgl train config/everyvoice-spec-to-wav.yaml**"""
-    with spinner():
-        from everyvoice.base_cli.helpers import (
-            load_config_base_command,
-            train_base_command,
-        )
 
-        from .config import HiFiGANConfig
-        from .dataset import HiFiGANDataModule
-        from .model import HiFiGAN
-
-    config = load_config_base_command(
-        model_config=HiFiGANConfig,
-        config_args=kwargs.pop("config_args"),
+    config = core.load_config(
         config_file=kwargs.pop("config_file"),
+        config_args=kwargs.pop("config_args"),
     )
-    train_base_command(
-        config=config,
-        model=HiFiGAN,
-        data_module=HiFiGANDataModule,
-        monitor="validation/mel_spec_error",
-        # We can't do this automatically with Lightning, so we do it manually in model.py
-        gradient_clip_val=None,
-        **kwargs,
-    )
+    core.train(config=config, **kwargs)
 
 
 @command(app)
