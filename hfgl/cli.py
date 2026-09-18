@@ -60,14 +60,22 @@ def train(**kwargs):
 
     **hfgl train config/everyvoice-spec-to-wav.yaml**"""
     with spinner():
-        from everyvoice.base_cli.helpers import train_base_command
+        from everyvoice.base_cli.helpers import (
+            load_config_base_command,
+            train_base_command,
+        )
 
         from .config import HiFiGANConfig
         from .dataset import HiFiGANDataModule
         from .model import HiFiGAN
 
-    train_base_command(
+    config = load_config_base_command(
         model_config=HiFiGANConfig,
+        config_args=kwargs.pop("config_args"),
+        config_file=kwargs.pop("config_file"),
+    )
+    train_base_command(
+        config=config,
         model=HiFiGAN,
         data_module=HiFiGANDataModule,
         monitor="validation/mel_spec_error",
