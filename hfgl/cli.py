@@ -146,7 +146,7 @@ def synthesize(
         ),
     ] = False,
 ):
-    """Given some Mel spectrograms and a trained model, generate some audio. i.e. perform *copy synthesis*."""
+    """Given some Mel spectrograms and a trained model, generate some audio. i.e. perform *copy synthesis*"""
     import sys
 
     with spinner():
