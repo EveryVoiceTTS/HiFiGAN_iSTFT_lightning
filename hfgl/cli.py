@@ -46,7 +46,8 @@ def preprocess(
     """
 
     config = core.load_config(
-        config_file=kwargs.pop("config_file"), config_args=kwargs.pop("config_args")
+        config_file=kwargs.pop("config_file"),
+        config_args=kwargs.pop("config_args"),
     )
     core.preprocess(config=config, steps=[step.name for step in steps], **kwargs)
 
@@ -59,22 +60,12 @@ def train(**kwargs):
     For example:
 
     **hfgl train config/everyvoice-spec-to-wav.yaml**"""
-    with spinner():
-        from everyvoice.base_cli.helpers import train_base_command
 
-        from .config import HiFiGANConfig
-        from .dataset import HiFiGANDataModule
-        from .model import HiFiGAN
-
-    train_base_command(
-        model_config=HiFiGANConfig,
-        model=HiFiGAN,
-        data_module=HiFiGANDataModule,
-        monitor="validation/mel_spec_error",
-        # We can't do this automatically with Lightning, so we do it manually in model.py
-        gradient_clip_val=None,
-        **kwargs,
+    config = core.load_config(
+        config_file=kwargs.pop("config_file"),
+        config_args=kwargs.pop("config_args"),
     )
+    core.train(config=config, **kwargs)
 
 
 @command(app)
@@ -148,7 +139,7 @@ def synthesize(
         ),
     ] = False,
 ):
-    """Given some Mel spectrograms and a trained model, generate some audio. i.e. perform *copy synthesis*."""
+    """Given some Mel spectrograms and a trained model, generate some audio. i.e. perform *copy synthesis*"""
     import sys
 
     with spinner():
