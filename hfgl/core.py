@@ -39,6 +39,10 @@ def preprocess(
     """Preprocess audio and text data for HiFiGAN training."""
     from everyvoice.base_cli.helpers import preprocess_base_command
 
+    for step in steps:
+        if step not in PREPROCESS_CATEGORIES:
+            raise ValueError(f"Unknown step '{step}'")
+
     preprocessor, _ = preprocess_base_command(
         config=config, steps=steps, cpus=cpus, overwrite=overwrite, debug=debug
     )

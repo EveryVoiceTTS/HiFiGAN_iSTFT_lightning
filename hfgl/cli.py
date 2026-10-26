@@ -1,3 +1,4 @@
+import sys
 from enum import Enum
 from pathlib import Path
 from typing import Annotated
@@ -11,6 +12,7 @@ from everyvoice.base_cli.interfaces import (
     typer_file_argument,
     typer_file_option,
 )
+from everyvoice.exceptions import EveryVoiceError
 from everyvoice.utils import spinner
 from merge_args import merge_args
 
@@ -45,10 +47,16 @@ def preprocess(
     **hfgl preprocess config/everyvoice-spec-to-wav.yaml**
     """
 
-    config = core.load_config(
-        config_file=kwargs.pop("config_file"), config_args=kwargs.pop("config_args")
-    )
-    core.preprocess(config=config, steps=[step.name for step in steps], **kwargs)
+    try:
+        config = core.load_config(
+            config_file=kwargs.pop("config_file"), config_args=kwargs.pop("config_args")
+        )
+        core.preprocess(config=config, steps=[step.name for step in steps], **kwargs)
+    except typer.BadParameter as e:
+        raise e
+    except (EveryVoiceError, Exception) as e:
+        logger.error(f"{e.__class__.__name__}: {e}")
+        sys.exit(1)
 
 
 @command(app)
