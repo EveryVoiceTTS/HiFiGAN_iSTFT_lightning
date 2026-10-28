@@ -61,7 +61,7 @@ def train(
     Args:
         config (HiFiGANConfig): your HiFiGAN configuration
         accelerator (str): PyTorch Lightning Accelerator to use: https://pytorch-lightning.readthedocs.io/en/stable/extensions/accelerator.html
-        devices ("auto" | str | int): the number of GPUs to use on each node as a str or int; use "auto" to let pytoch-lightning decide
+        devices ("auto" | str | int): the number of GPUs to use on each node as a str or int; use "auto" to let PyTorch Lightning decide
         nodes (int): the number of nodes to use
         strategy (str): the strategy for data parallelization: https://pytorch-lightning.readthedocs.io/en/stable/accelerators/gpu_intermediate.html"
     """
