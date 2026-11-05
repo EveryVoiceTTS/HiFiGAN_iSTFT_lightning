@@ -12,7 +12,6 @@ from everyvoice.base_cli.interfaces import (
     typer_file_argument,
     typer_file_option,
 )
-from everyvoice.exceptions import EveryVoiceError
 from everyvoice.utils import spinner
 from merge_args import merge_args
 
@@ -54,9 +53,13 @@ def preprocess(
         core.preprocess(config=config, steps=[step.name for step in steps], **kwargs)
     except typer.BadParameter as e:
         raise e
-    except (EveryVoiceError, Exception) as e:
+    except Exception as e:
         logger.error(f"{e.__class__.__name__}: {e}")
-        sys.exit(1)
+        if kwargs.get("debug", False):
+            raise e
+        else:
+            logger.info("Rerun with --debug to see the full stack trace.")
+            sys.exit(1)
 
 
 @command(app)
@@ -68,11 +71,20 @@ def train(**kwargs):
 
     **hfgl train config/everyvoice-spec-to-wav.yaml**"""
 
-    config = core.load_config(
-        config_file=kwargs.pop("config_file"),
-        config_args=kwargs.pop("config_args"),
-    )
-    core.train(config=config, **kwargs)
+    debug = kwargs.pop("debug")
+    try:
+        config = core.load_config(
+            config_file=kwargs.pop("config_file"),
+            config_args=kwargs.pop("config_args"),
+        )
+        core.train(config=config, **kwargs)
+    except Exception as e:
+        logger.error(f"{e.__class__.__name__}: {e}")
+        if debug:
+            raise e
+        else:
+            logger.info("Rerun with --debug to see the full stack trace.")
+            sys.exit(1)
 
 
 @command(app)
