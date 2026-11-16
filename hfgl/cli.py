@@ -148,7 +148,9 @@ def synthesize(
     generator_path: Annotated[
         Path,
         typer_file_option(
+            "--vocoder",
             "--model",
+            "-V",
             "-m",
             help="The path to a trained EveryVoice spec-to-wav model (i.e., a vocoder)",
         ),
