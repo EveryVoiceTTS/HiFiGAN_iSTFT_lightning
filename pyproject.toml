@@ -30,7 +30,14 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Topic :: Multimedia :: Sound/Audio :: Speech",
 ]
+
 dependencies = ["everyvoice==0.5.0"]
+
+[project.optional-dependencies]
+dev = ["everyvoice[dev]"]
+
+[dependency-groups]
+dev = ["everyvoice[dev]"]
 
 [project.scripts]
 hfgl = "hfgl.cli:app"
@@ -42,6 +49,3 @@ Issues = "https://github.com/EveryVoiceTTS/HiFiGAN_iSTFT_lightning/issues"
 
 [tool.hatch.version]
 path = "hfgl/_version.py"
-
-[project.optional-dependencies]
-dev = ["everyvoice[dev]"]
