@@ -1,11 +1,10 @@
 import sys
-from enum import Enum
 from pathlib import Path
 from typing import Annotated
 
 import typer
 from everyvoice import logger
-from everyvoice.base_cli import command, default_typer_args
+from everyvoice.base_cli import command, default_typer_args, make_enum
 from everyvoice.base_cli.interfaces import (
     preprocess_base_command_interface,
     train_base_command_interface,
@@ -23,22 +22,17 @@ app = typer.Typer(
 )
 
 
-PreprocessCategories = Enum(  # type: ignore[misc]
-    "PreprocessCategories",
-    {category: category for category in core.PREPROCESS_CATEGORIES},
-    type=str,
-)
-
-
 @command(app)
 @merge_args(preprocess_base_command_interface)
 def preprocess(
-    steps: list[PreprocessCategories] = typer.Option(
-        [cat.value for cat in PreprocessCategories],
-        "-s",
-        "--steps",
-        help="Which steps of the preprocessor to use. If none are provided, all steps will be performed.",
-    ),
+    steps: Annotated[  # type: ignore[valid-type]
+        list[make_enum(core.PREPROCESS_CATEGORIES)],  # type: ignore[valid-type]
+        typer.Option(
+            "-s",
+            "--steps",
+            help="Which steps of the preprocessor to use. If none are provided, all steps will be performed.",
+        ),
+    ] = core.PREPROCESS_CATEGORIES,
     **kwargs,
 ):
     """Preprocess data for spec-to-wav (HiFiGAN) training
