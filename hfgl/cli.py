@@ -78,6 +78,8 @@ def train(**kwargs):
             config_args=kwargs.pop("config_args"),
         )
         core.train(config=config, **kwargs)
+    except typer.BadParameter as e:
+        raise e
     except Exception as e:
         logger.error(f"{e.__class__.__name__}: {e}")
         if debug:
