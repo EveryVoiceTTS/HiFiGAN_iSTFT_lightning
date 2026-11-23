@@ -1,8 +1,12 @@
 import multiprocessing as mp
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from . import core
 from .config import HiFiGANConfig
+
+if TYPE_CHECKING:
+    from .model import HiFiGAN, HiFiGANGenerator
 
 
 def load_config(
@@ -71,4 +75,25 @@ def train(
         devices=str(devices),
         nodes=nodes,
         strategy=strategy,
+    )
+
+
+def load_model(
+    model_path: Path | str,
+    accelerator: str = "auto",
+) -> "HiFiGAN | HiFiGANGenerator":
+    """Load a HiFiGAN vocoder from a checkpoint, ready for synthesis.
+
+    Its configuration is available as model.config.
+
+    Args:
+        model_path (Path|str): the vocoder checkpoint, e.g. the "last.ckpt" saved by
+            train(), or a pretrained universal vocoder
+        accelerator (str): determines the device the model is loaded on, one of
+            "auto", "cpu", "gpu" or "mps"; see train()
+    """
+    from everyvoice.utils.heavy import get_device_from_accelerator
+
+    return core.load_model(
+        Path(model_path), device=get_device_from_accelerator(accelerator)
     )
