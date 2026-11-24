@@ -37,6 +37,7 @@ def load_model(
     Returns a HiFiGANGenerator if the checkpoint only has the generator, or a full
     HiFiGAN (generator and discriminators) otherwise. Either way, the generator
     is in eval mode, without weight norm, and its config is model.config.
+    model.global_step_at_load is the training step the checkpoint was saved at.
     """
     from everyvoice.base_cli.checkpoint import load_checkpoint
 

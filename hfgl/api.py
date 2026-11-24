@@ -84,7 +84,8 @@ def load_model(
 ) -> "HiFiGAN | HiFiGANGenerator":
     """Load a HiFiGAN vocoder from a checkpoint, ready for synthesis.
 
-    Its configuration is available as model.config.
+    Its configuration is available as model.config, and the training step the
+    checkpoint was saved at as model.global_step_at_load.
 
     Args:
         model_path (Path|str): the vocoder checkpoint, e.g. the "last.ckpt" saved by

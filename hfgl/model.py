@@ -471,6 +471,11 @@ class HiFiGANGenerator(pl.LightningModule):
 
         self.config = config
         self.generator = Generator(self.config)
+        # The global_step stored in the checkpoint this model was loaded from, or
+        # None if it wasn't loaded from a checkpoint. Not updated by further
+        # training: for the live step, use self.global_step (0 when no Trainer is
+        # attached, e.g., when loaded for synthesis).
+        self.global_step_at_load: int | None = None
 
     def check_and_upgrade_checkpoint(self, checkpoint):
         """
@@ -510,6 +515,7 @@ class HiFiGANGenerator(pl.LightningModule):
         but it will fail on breaking changes to the config. We should catch those exceptions
         and handle them appropriately."""
         checkpoint = self.check_and_upgrade_checkpoint(checkpoint)
+        self.global_step_at_load = checkpoint.get("global_step")
 
         try:
             config = VocoderConfig(**checkpoint["hyper_parameters"]["config"])
