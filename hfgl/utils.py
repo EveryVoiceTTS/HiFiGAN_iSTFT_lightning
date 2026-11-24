@@ -28,7 +28,7 @@ def load_hifigan_from_checkpoint(
         from pydantic import ValidationError
 
         try:
-            config = HiFiGANConfig(**config)
+            config = HiFiGANConfig.from_checkpoint_dump(config)
         except ValidationError as e:
             logger.error(f"{pydantic_validation_error_shortener(e)}")
             raise TypeError(

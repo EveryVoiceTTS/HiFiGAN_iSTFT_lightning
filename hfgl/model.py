@@ -462,7 +462,8 @@ class HiFiGANGenerator(pl.LightningModule):
 
         if not isinstance(config, VocoderConfig):
             try:
-                config = VocoderConfig(**config)
+                # A dict config comes from a checkpoint's hyperparameters
+                config = VocoderConfig.from_checkpoint_dump(config)
             except ValidationError as e:
                 logger.error(f"{e}")
                 raise TypeError(
@@ -512,7 +513,9 @@ class HiFiGANGenerator(pl.LightningModule):
         checkpoint = self.check_and_upgrade_checkpoint(checkpoint)
 
         try:
-            config = VocoderConfig(**checkpoint["hyper_parameters"]["config"])
+            config = VocoderConfig.from_checkpoint_dump(
+                checkpoint["hyper_parameters"]["config"]
+            )
         except ValidationError as e:
             logger.error(f"{e}")
             raise TypeError(
@@ -538,7 +541,8 @@ class HiFiGAN(HiFiGANGenerator):
         # sometimes what is passed is actually just a dict.
         if not isinstance(config, VocoderConfig):
             try:
-                config = VocoderConfig(**config)
+                # A dict config comes from a checkpoint's hyperparameters
+                config = VocoderConfig.from_checkpoint_dump(config)
             except ValidationError as e:
                 logger.error(f"{e}")
                 raise TypeError(
