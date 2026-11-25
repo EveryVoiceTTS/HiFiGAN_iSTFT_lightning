@@ -1,3 +1,4 @@
+import sys
 from enum import Enum
 from pathlib import Path
 from typing import Annotated
@@ -11,8 +12,11 @@ from everyvoice.base_cli.interfaces import (
     typer_file_argument,
     typer_file_option,
 )
+from everyvoice.exceptions import EveryVoiceError
 from everyvoice.utils import spinner
 from merge_args import merge_args
+
+from . import core
 
 app = typer.Typer(
     **default_typer_args,
@@ -20,9 +24,11 @@ app = typer.Typer(
 )
 
 
-class PreprocessCategories(str, Enum):
-    audio = "audio"
-    spec = "spec"
+PreprocessCategories = Enum(  # type: ignore[misc]
+    "PreprocessCategories",
+    {category: category for category in core.PREPROCESS_CATEGORIES},
+    type=str,
+)
 
 
 @command(app)
@@ -36,23 +42,31 @@ def preprocess(
     ),
     **kwargs,
 ):
-    """Preprocess your data"""
-    with spinner():
-        from everyvoice.base_cli.helpers import preprocess_base_command
+    """Preprocess data for spec-to-wav (HiFiGAN) training
 
-        from .config import HiFiGANConfig
+    **hfgl preprocess config/everyvoice-spec-to-wav.yaml**
+    """
 
-    preprocess_base_command(
-        model_config=HiFiGANConfig,
-        steps=[step.name for step in steps],
-        **kwargs,
-    )
+    try:
+        config = core.load_config(
+            config_file=kwargs.pop("config_file"), config_args=kwargs.pop("config_args")
+        )
+        core.preprocess(config=config, steps=[step.name for step in steps], **kwargs)
+    except typer.BadParameter as e:
+        raise e
+    except (EveryVoiceError, Exception) as e:
+        logger.error(f"{e.__class__.__name__}: {e}")
+        sys.exit(1)
 
 
 @command(app)
 @merge_args(train_base_command_interface)
 def train(**kwargs):
-    """Train your spec-to-wav model"""
+    """Train your spec-to-wav (HiFiGAN) model
+
+    For example:
+
+    **hfgl train config/everyvoice-spec-to-wav.yaml**"""
     with spinner():
         from everyvoice.base_cli.helpers import train_base_command
 
@@ -71,27 +85,7 @@ def train(**kwargs):
     )
 
 
-HFG_EXPORT_SHORT_HELP = (
-    "Export and optimize a spec-to-wav model checkpoint for inference"
-)
-HFG_EXPORT_LONG_HELP = """
-    Export your spec-to-wav model.
-
-    # Important!
-
-    This will reduce the size of your checkpoint but it means that the exported checkpoint cannot be resumed for training, it can only be used for inference/synthesis.
-
-    For example:
-
-    **everyvoice export spec-to-wav <path_to_ckpt> <output_path>**
-    """
-
-
-@command(
-    app,
-    short_help=HFG_EXPORT_SHORT_HELP,
-    help=HFG_EXPORT_LONG_HELP,
-)
+@command(app)
 def export(
     model_path: Annotated[
         Path,
@@ -107,6 +101,16 @@ def export(
         ),
     ] = Path("exported.ckpt"),
 ):
+    """Export and optimize a spec-to-wav model checkpoint for inference
+
+    # Important!
+
+    This will reduce the size of your checkpoint but it means that the exported checkpoint cannot be resumed for training, it can only be used for inference/synthesis.
+
+    For example:
+
+    **hfgl export <path_to_ckpt> <output_path>**
+    """
     import os
 
     with spinner():
