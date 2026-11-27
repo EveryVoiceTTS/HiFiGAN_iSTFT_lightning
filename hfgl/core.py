@@ -2,7 +2,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    import torch
+
     from .config import HiFiGANConfig
+    from .model import HiFiGAN, HiFiGANGenerator
 
 
 def load_config(
@@ -24,6 +27,25 @@ def load_config(
     )
     assert isinstance(config, HiFiGANConfig)
     return config
+
+
+def load_model(
+    model_path: Path, device: "torch.device"
+) -> "HiFiGAN | HiFiGANGenerator":
+    """Load a HiFiGAN vocoder checkpoint on device, ready for synthesis.
+
+    Returns a HiFiGANGenerator if the checkpoint only has the generator, or a full
+    HiFiGAN (generator and discriminators) otherwise. Either way, the generator
+    is in eval mode, without weight norm, and its config is model.config.
+    model.global_step_at_load is the training step the checkpoint was saved at.
+    """
+    from everyvoice.base_cli.checkpoint import load_checkpoint
+
+    from .utils import load_hifigan_from_checkpoint
+
+    checkpoint = load_checkpoint(model_path, minimal=False, device=device)
+    model, _config = load_hifigan_from_checkpoint(checkpoint, device)
+    return model
 
 
 PREPROCESS_CATEGORIES = ["audio", "spec"]

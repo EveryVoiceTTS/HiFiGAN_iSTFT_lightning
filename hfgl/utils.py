@@ -47,6 +47,7 @@ def load_hifigan_from_checkpoint(
 
     ckpt = model.check_and_upgrade_checkpoint(ckpt)
     model.load_state_dict(ckpt["state_dict"])
+    model.global_step_at_load = ckpt.get("global_step")
     model.generator.eval()
     model.generator.remove_weight_norm()
 
