@@ -1,10 +1,12 @@
 import math
 from enum import Enum
 from pathlib import Path
-from typing import Annotated, Any, Optional
+from typing import Annotated, Any, Literal, Optional
 
+from everyvoice import logger
 from everyvoice.config.preprocessing_config import PreprocessingConfig
 from everyvoice.config.shared_types import (
+    FROM_CHECKPOINT_CONTEXT,
     AdamOptimizer,
     AdamWOptimizer,
     BaseModelWithContact,
@@ -18,6 +20,7 @@ from everyvoice.utils import load_config_from_json_or_yaml_path
 from pydantic import (
     Field,
     FilePath,
+    TypeAdapter,
     ValidationInfo,
     field_serializer,
     field_validator,
@@ -138,10 +141,49 @@ class HiFiGANTrainingConfig(BaseTrainingConfig):
         default=False,
         description="Whether to use a sampler which oversamples from the minority language or speaker class for balanced training.",
     )
-    finetune: bool = Field(
-        default=False,
-        description="Whether to read spectrograms from 'preprocessed/synthesized_spec' instead of 'preprocessed/spec'. This is used when finetuning a pretrained spec-to-wav (vocoder) model using the outputs of a trained text-to-spec (feature prediction network) model.",
+    # Adds vocoder-matching to the finetune_mode values of BaseTrainingConfig
+    finetune_mode: Literal["weights-only", "full-state", "vocoder-matching"] = Field(  # type: ignore[assignment]
+        default="weights-only",
+        description="How finetune_checkpoint is loaded when this experiment starts."
+        " 'weights-only' loads its weights and starts the optimizer, learning rate schedule and step counter fresh."
+        " 'full-state' also continues its optimizer, learning rate schedule, step and epoch, so max_steps and max_epochs count from the checkpoint's step."
+        " 'vocoder-matching' loads its weights like 'weights-only', then trains on the spectrograms in 'preprocessed/synthesized_spec' instead of 'preprocessed/spec',"
+        " with the early discriminator layers frozen: use it to match a pretrained spec-to-wav (vocoder) model to the outputs of a trained text-to-spec (feature prediction network) model."
+        " It also describes how this run trains, so it still applies when --auto-resume continues the run from its own last checkpoint.",
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def convert_finetune_to_finetune_mode(cls, data: Any, info: ValidationInfo) -> Any:
+        """Convert the deprecated training.finetune to training.finetune_mode:
+        finetune: true is finetune_mode: vocoder-matching."""
+        if not isinstance(data, dict) or "finetune" not in data:
+            return data
+        data = dict(data)
+        finetune = TypeAdapter(bool).validate_python(data.pop("finetune"))
+        from_checkpoint = bool(
+            info.context and info.context.get(FROM_CHECKPOINT_CONTEXT)
+        )
+        if finetune:
+            # A config combined with -c training.finetune=true still holds the
+            # default finetune_mode, so only another explicit mode conflicts.
+            finetune_mode = data.get("finetune_mode", "weights-only")
+            if finetune_mode not in ("weights-only", "vocoder-matching"):
+                raise ValueError(
+                    "training.finetune: true means training.finetune_mode: vocoder-matching, "
+                    f"which conflicts with training.finetune_mode: {finetune_mode}. "
+                    "Remove training.finetune."
+                )
+            data["finetune_mode"] = "vocoder-matching"
+            if not from_checkpoint:
+                logger.warning(
+                    "training.finetune is deprecated: use training.finetune_mode: vocoder-matching instead of training.finetune: true."
+                )
+        elif not from_checkpoint:
+            logger.warning(
+                "training.finetune is deprecated and training.finetune: false does nothing: remove it from your config."
+            )
+        return data
 
     @field_serializer("gan_type")
     def convert_enum(self, gan_type: HiFiGANTrainTypes):
