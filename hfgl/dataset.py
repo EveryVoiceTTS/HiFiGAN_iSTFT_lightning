@@ -19,7 +19,7 @@ class SpecDataset(Dataset):
         self.use_segments = use_segments
         self.audio_files = audio_files
         self.preprocessed_dir = Path(self.config.preprocessing.save_dir)
-        self.finetune = self.config.training.finetune
+        self.finetune = self.config.training.finetune_mode == "vocoder-matching"
         self.segment_size = self.config.preprocessing.audio.vocoder_segment_size
         self.output_sampling_rate = self.config.preprocessing.audio.output_sampling_rate
         self.input_sampling_rate = self.config.preprocessing.audio.input_sampling_rate

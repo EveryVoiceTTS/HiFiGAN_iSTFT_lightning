@@ -565,15 +565,18 @@ class HiFiGAN(HiFiGANGenerator):
     def update_config_settings(self):
         # batch_size is declared explicitly so that auto_scale_batch_size works:
         # https://pytorch-lightning.readthedocs.io/en/stable/advanced/training_tricks.html
-        if self.config.training.finetune:
-            for disc in self.mpd.discriminators:
-                for layer in disc.convs[:3]:
-                    for p in layer.parameters():
-                        p.requires_grad = False
-            for disc in self.msd.discriminators:
-                for layer in disc.convs[:4]:
-                    for p in layer.parameters():
-                        p.requires_grad = False
+        # Vocoder matching freezes the early discriminator layers. They are
+        # set either way, since this also runs on a model loaded from a
+        # checkpoint whose config had another finetune_mode.
+        freeze = self.config.training.finetune_mode == "vocoder-matching"
+        for disc in self.mpd.discriminators:
+            for layer in disc.convs[:3]:
+                for p in layer.parameters():
+                    p.requires_grad = not freeze
+        for disc in self.msd.discriminators:
+            for layer in disc.convs[:4]:
+                for p in layer.parameters():
+                    p.requires_grad = not freeze
         self.batch_size = self.config.training.batch_size
         self.audio_config = self.config.preprocessing.audio
         self.sampling_rate_change = (
@@ -623,7 +626,7 @@ class HiFiGAN(HiFiGANGenerator):
 
     def configure_optimizers(self):
         generator_params = self.generator.parameters()
-        if self.config.training.finetune:
+        if self.config.training.finetune_mode == "vocoder-matching":
             msd_params = filter(lambda p: p.requires_grad, self.msd.parameters())
             mpd_params = filter(lambda p: p.requires_grad, self.mpd.parameters())
         else:
